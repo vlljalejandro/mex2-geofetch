@@ -22,7 +22,7 @@
 # output_base : Root folder where downloaded scenes will be saved.
 #               Each scene is saved in its own subfolder under output_folder.
 paths:
-  aoi: "aoi/ml_study_area.zip"
+  aoi: "aoi/maaden_study_area.zip"
   output_base: "data/01_raw_data"
 
 

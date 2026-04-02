@@ -30,7 +30,7 @@
 # output : Path for the output master grid GeoTIFF.
 #          File will be created automatically including parent directories.
 paths:
-  aoi: "aoi/ml_study_area.zip"
+  aoi: "aoi/maaden_study_area.zip"
   output: "data/00_base_grid/ml_base_grid30m.tif"
 
 
