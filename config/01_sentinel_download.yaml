@@ -1,0 +1,114 @@
+# =============================================================================
+# Microsoft Planetary Computer — Sentinel-2 Download Configuration
+# =============================================================================
+# IMPORTANT: Do NOT commit this file to version control.
+# Add to your .gitignore:  config/sentinel2_download.yaml
+# =============================================================================
+# No account is required for read-only access to Planetary Computer.
+# The pystac-client + planetary-computer libraries handle token signing
+# automatically via anonymous access. If you hit rate limits, register at:
+#   https://planetarycomputer.microsoft.com
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+# aoi         : Path to your Area of Interest file. Supports any GeoPandas-
+#               readable format: .geojson, .shp, .gpkg, .zip (zipped shapefile)
+#               Relative paths are resolved from the project root (two levels
+#               above this config file). Use absolute paths to avoid ambiguity.
+#
+# output_base : Root folder where downloaded scenes will be saved.
+#               Each scene is saved in its own subfolder under output_folder.
+paths:
+  aoi: "aoi/maaden_study_area.zip"
+  output_base: "data/01_raw_data"
+
+
+# -----------------------------------------------------------------------------
+# Sensor / Dataset
+# -----------------------------------------------------------------------------
+# short_name    : Planetary Computer STAC collection ID.
+#                 Browse all collections at:
+#                   https://planetarycomputer.microsoft.com/catalog
+#
+#                 Sentinel-2 collections:
+#                   sentinel-2-l2a   - Sentinel-2 Level-2A Surface Reflectance (10–60m) ← recommended
+#
+#                 Other useful collections on MPC:
+#                   landsat-c2-l2    - Landsat Collection 2 Level-2 SR+ST (30m)
+#                   cop-dem-glo-30   - Copernicus DEM GLO-30 (~30m)
+#                   naip             - NAIP Aerial Imagery (USA only, ~1m)
+#                   aster-l1t        - ASTER Level-1T Radiance (~15–90m)
+#                   modis-09-daily   - MODIS Daily Surface Reflectance (~500m)
+#
+# platform      : Satellite platform filter. Must match MPC metadata exactly.
+#                 Sentinel-2 options:
+#                   Sentinel-2A      - Sentinel-2A (launched 2015)
+#                   Sentinel-2B      - Sentinel-2B (launched 2017)
+#                 Leave blank or remove this key to include both satellites.
+#
+# output_folder : Subfolder name created inside output_base for this dataset.
+#
+# start_date    : Temporal search start (YYYY-MM-DD).
+# end_date      : Temporal search end   (YYYY-MM-DD).
+#
+# max_cloud_cover : Maximum scene-level cloud cover percentage (0–100).
+#                   Recommended starting value: 10–20.
+#                   Values below 5 may return zero results over many AOIs.
+#
+# band_keys     : List of STAC asset keys to download (spectral bands).
+#                 Sentinel-2 L2A asset keys and resolutions:
+#
+#                 10m bands:
+#                   B02              - Blue          (~490nm)
+#                   B03              - Green         (~560nm)
+#                   B04              - Red           (~665nm)
+#                   B08              - NIR           (~842nm)
+#
+#                 20m bands:
+#                   B05              - Red Edge 1    (~705nm)
+#                   B06              - Red Edge 2    (~740nm)
+#                   B07              - Red Edge 3    (~783nm)
+#                   B8A              - Narrow NIR    (~865nm)
+#                   B11              - SWIR-1        (~1610nm)
+#                   B12              - SWIR-2        (~2190nm)
+#
+#                 60m bands:
+#                   B01              - Coastal/Aerosol (~443nm)
+#                   B09              - Water Vapour    (~945nm)
+#
+# qa_prefixes   : Asset key substrings for QA and auxiliary files to include.
+#                 Matched as lowercase substrings against asset keys.
+#                   scl              - Scene Classification Layer (cloud/shadow/water mask)
+#                   aot              - Aerosol Optical Thickness map
+#                   wvp              - Water Vapour map
+sensors:
+  sentinel2:
+    short_name: "sentinel-2-l2a"
+    platform: "Sentinel-2A"        # Set to "Sentinel-2B" or remove to include both
+    output_folder: "raw_sentinel2_refl"
+    start_date: "2025-01-01"
+    end_date: "2026-12-31"
+    max_cloud_cover: 10            # Increase if too few scenes are returned
+    band_keys:
+      # 10m resolution
+      - B02              # Blue
+      - B03              # Green
+      - B04              # Red
+      - B08              # NIR
+      # 20m resolution
+      - B05              # Red Edge 1
+      - B06              # Red Edge 2
+      - B07              # Red Edge 3
+      - B8A              # Narrow NIR
+      - B11              # SWIR-1
+      - B12              # SWIR-2
+      # 60m resolution
+      - B01              # Coastal/Aerosol
+      - B09              # Water Vapour
+    qa_prefixes:
+      - scl              # Scene Classification Layer
+      - aot              # Aerosol Optical Thickness
+      - wvp              # Water Vapour map

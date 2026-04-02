@@ -27,7 +27,7 @@ auth:
 #               A subfolder defined by `output_folder` (under sensors) will
 #               be created inside this directory automatically.
 paths:
-  aoi: "aoi/ml_study_area.zip"
+  aoi: "aoi/maaden_study_area.zip"
   output_base: "data/01_raw_data"
 
 
