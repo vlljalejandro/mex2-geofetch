@@ -1,0 +1,73 @@
+# =============================================================================
+# OpenTopography DEM Download Configuration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Credentials
+# -----------------------------------------------------------------------------
+# Register for a free OpenTopography account at:
+#   https://portal.opentopography.org/login
+# After registering, generate your API key at:
+#   https://portal.opentopography.org/myopentopo
+# Free accounts include access to all global DEM datasets listed below.
+auth:
+  api_key: "*******************"
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+# aoi         : Path to your Area of Interest file. Supports any GeoPandas-
+#               readable format: .geojson, .shp, .gpkg, .zip (zipped shapefile)
+#
+# output_base : Root folder where the downloaded DEM will be saved.
+#               The file will be named:  <demtype>_subset.<output_format>
+paths:
+  aoi: "aoi/ml_study_area.zip"
+  output_base: "data/00_raw_data/raw_copglo_dem30m"
+
+
+# -----------------------------------------------------------------------------
+# API
+# -----------------------------------------------------------------------------
+# base_url : OpenTopography global DEM endpoint. Do not change this unless
+#            OpenTopography publishes a new API version.
+#            Full API docs: https://portal.opentopography.org/apidocs/
+api:
+  base_url: "https://portal.opentopography.org/API/globaldem"
+
+
+# -----------------------------------------------------------------------------
+# DEM Parameters
+# -----------------------------------------------------------------------------
+# demtype       : Dataset identifier. Available global DEMs:
+#
+#                 SRTM (NASA, ~30m, global coverage up to ±60° latitude):
+#                   SRTMGL3          - SRTM GL3 (~90m / 3 arc-second)
+#                   SRTMGL1          - SRTM GL1 (~30m / 1 arc-second)  ← recommended
+#                   SRTMGL1_E        - SRTM GL1 Ellipsoidal (WGS84 heights)
+#
+#                 NASADEM (reprocessed SRTM, improved voids, ~30m):
+#                   NASADEM          - NASA Digital Elevation Model (~30m)
+#
+#                 Copernicus (ESA, ~30m, global including polar regions):
+#                   COP30            - Copernicus DEM GLO-30 (~30m)     ← best global option
+#                   COP90            - Copernicus DEM GLO-90 (~90m)
+#
+#                 ALOS (JAXA, ~30m, good coverage in Asia/tropics):
+#                   AW3D30           - ALOS World 3D (~30m)
+#                   AW3D30_E         - ALOS World 3D Ellipsoidal
+#
+#                 EU-DEM (Copernicus, Europe only, ~25m):
+#                   EU_DTM           - European Digital Terrain Model
+#
+#                 GEBCO (global bathymetry + topography, ~450m):
+#                   GEBCO            - General Bathymetric Chart of the Oceans
+#
+# output_format : Output raster format.
+#                   GTiff            - GeoTIFF (tif)   ← recommended
+#                   AAIGrid          - ASCII Grid (asc)
+#                   HFA              - Erdas Imagine (img)
+dem_params:
+  demtype: "COP30"
+  output_format: "tif"

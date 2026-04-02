@@ -1,0 +1,82 @@
+# =============================================================================
+# NASA Earthdata Download Configuration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Credentials
+# -----------------------------------------------------------------------------
+# Register for a free NASA Earthdata account at:
+#   https://urs.earthdata.nasa.gov/users/new
+# After registering, also authorize the following apps in your profile
+# under "My Applications":
+#   - EMIT Data Portal
+#   - LP DAAC Data Pool (for HLS, ECOSTRESS, etc.)
+#   - Earthdata Search (general access)
+auth:
+  username: "username"
+  password: "**********"
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+# aoi         : Path to your Area of Interest file. Supports any GeoPandas-
+#               readable format: .geojson, .shp, .gpkg, .zip (zipped shapefile)
+#
+# output_base : Root folder where downloaded granules will be saved.
+#               A subfolder defined by `output_folder` (under sensors) will
+#               be created inside this directory automatically.
+paths:
+  aoi: "aoi/ml_study_area.zip"
+  output_base: "data/01_raw_data"
+
+
+# -----------------------------------------------------------------------------
+# Sensor / Dataset
+# -----------------------------------------------------------------------------
+# short_name    : NASA Earthdata dataset identifier (case-sensitive).
+#                 Find short names by searching the catalog at:
+#                   https://search.earthdata.nasa.gov
+#                 Or via the CMR API:
+#                   https://cmr.earthdata.nasa.gov/search/collections?keyword=EMIT
+#
+#                 Common short names:
+#                   EMIT (hyperspectral surface reflectance, ~60m):
+#                     EMITL2ARFL       - L2A Surface Reflectance
+#                     EMITL2BCH4ENH    - L2B Methane Enhancement
+#                     EMITL2BCH4PLM    - L2B Methane Plume Complexes
+#                     EMITL1BRAD       - L1B Radiance
+#
+#                   HLS / Landsat-Sentinel (30m multispectral):
+#                     HLSL30           - HLS Landsat OLI (30m)
+#                     HLSS30           - HLS Sentinel-2 MSI (30m)
+#
+#                   ECOSTRESS (land surface temperature, ~70m):
+#                     ECO2LSTE        - L2 Land Surface Temp & Emissivity
+#                     ECO2CLD         - L2 Cloud Mask
+#
+#                   MODIS (coarse resolution, daily):
+#                     MOD09GA          - Terra Surface Reflectance (500m)
+#                     MYD09GA          - Aqua Surface Reflectance (500m)
+#                     MOD11A1          - Terra Land Surface Temp (1km)
+#
+#                   VIIRS (daily, ~375–750m):
+#                     VNP09GA          - VIIRS Surface Reflectance (500m)
+#
+# output_folder : Subfolder name created inside output_base for this dataset.
+#
+# start_date    : Temporal search start (YYYY-MM-DD).
+# end_date      : Temporal search end   (YYYY-MM-DD). Use a future date to
+#                 capture all available data up to today.
+#
+# max_cloud_cover : Maximum cloud cover percentage (0–100).
+#                   Note: not all datasets report cloud cover in UMM-G metadata.
+#                   For datasets without cloud cover (e.g. EMIT methane), set
+#                   this to 100 to skip filtering.
+sensors:
+  emit:
+    short_name: "EMITL2ARFL"
+    output_folder: "raw_emitl2a_hyper60m"
+    start_date: "2015-01-01"
+    end_date: "2026-12-31"
+    max_cloud_cover: 1

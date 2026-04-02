@@ -1,0 +1,67 @@
+# =============================================================================
+# EMIT L2A Mosaic Configuration
+# =============================================================================
+# This config is used by mosaic.py to mosaic EMIT L2A Surface Reflectance
+# granules (.nc) into per-band GeoTIFF files ready for grid snapping.
+#
+# Usage:
+#   python mosaic.py config/02_emit_mosaic.yaml
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Processing Parameters
+# -----------------------------------------------------------------------------
+processing:
+
+  # input_dir : Folder containing downloaded EMIT .nc granules.
+  #             This should point to the output of emit_download.py, i.e.:
+  #               <output_base>/emit_l2a_earthdata/
+  #             Relative paths resolved from project root.
+  input_dir: "data/01_raw_data/raw_emitl2a_hyper60m"
+
+  # output_dir : Folder where mosaicked GeoTIFFs will be saved.
+  #              One file per band: emit_b001.tif, emit_mosaic_b010.tif, etc.
+  output_dir: "data/02_mosaic_data/mosaic_emitl2a_hyper60m"
+
+  # band_indices : 0-based band indices to extract and mosaic.
+  #
+  #   Supports two forms:
+  #     List:  [14, 25, 38, 70, 145, 220]
+  #     Range: range: [start, end]   (both ends inclusive)
+  #
+  #   EMIT L2A has 285 bands covering ~380–2500 nm (indices 0–284).
+  #   Approximate index guide:
+  #
+  #   Visible:
+  #     ~10   →  ~450 nm  (Blue)
+  #     ~25   →  ~550 nm  (Green)
+  #     ~40   →  ~650 nm  (Red)
+  #
+  #   NIR:
+  #     ~57   →  ~750 nm  (Red Edge)
+  #     ~70   →  ~865 nm  (NIR)
+  #
+  #   SWIR-1:
+  #     ~120  →  ~1250 nm
+  #     ~145  →  ~1550 nm (SWIR-1 centre)
+  #     ~160  →  ~1650 nm
+  #
+  #   SWIR-2:
+  #     ~200  →  ~2000 nm
+  #     ~220  →  ~2200 nm (Clay / carbonate absorption)
+  #     ~240  →  ~2350 nm (Carbonate feature)
+  #
+  #   To get exact wavelengths per index, inspect the .nc file:
+  #     import netCDF4 as nc
+  #     ds = nc.Dataset('your_file.nc')
+  #     print(ds.variables['wavelengths'][:])
+  #
+  band_indices:
+    # - 14    # ~450 nm  Blue
+    # - 25    # ~550 nm  Green
+    # - 38    # ~650 nm  Red
+    # - 70    # ~865 nm  NIR
+    # - 145   # ~1550 nm SWIR-1
+    # - 220   # ~2200 nm SWIR-2 (mineral absorption feature)
+    range: [0, 284]   # all 285 bands (0-based, inclusive)

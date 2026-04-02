@@ -1,0 +1,85 @@
+# =============================================================================
+# NetCDF4 Variable Writer Configuration
+# =============================================================================
+# Writes a single-variable NetCDF4 file from one or more GeoTIFFs.
+# Output shape is determined automatically from the input:
+#
+#   input: single file (1 band)   →  variable stored as (y, x)
+#   input: single file (N bands)  →  variable stored as (band, y, x)
+#   input: list of files          →  variable stored as (band, y, x)
+#
+# Run once per variable. Pass a different config each time:
+#   python build_nc_cube.py config/04_cube_refl.yaml
+#   python build_nc_cube.py config/04_cube_dem.yaml
+#
+# Usage:
+#   python build_nc_cube.py [config_path]
+#   (defaults to config/04_cube_raster.yaml)
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+paths:
+  master_grid: "data/00_base_grid/ml_base_grid30m.tif"
+  output_nc:   "data/04_cube_data/emitl2a_hyper60m.nc"
+
+
+# -----------------------------------------------------------------------------
+# Variable
+# -----------------------------------------------------------------------------
+# var_name   : name of the variable inside the .nc file
+# apply_mask : true (default) — pixels where master == 0 are set to NaN
+#              false          — no masking applied
+#
+# input — one of:
+#
+#   Single file:
+#     input: "path/to/file.tif"
+#
+#   List of files  →  one band per file, stacked in order:
+#     input:
+#       - "path/to/band1.tif"
+#       - "path/to/band2.tif"
+#       - "path/to/band3.tif"
+# --------------------------------------------------------------------------
+
+variable:
+  var_name:   "refl"
+  apply_mask: true
+  input:
+    glob:
+      dir:     "data/03_snap_data/snap_emitl2a_hyper60m"
+      pattern: "*.tif"
+
+# DEM example (single file → stored as (y, x), no wasted bands):
+#
+# variable:
+#   var_name:   "dem"
+#   apply_mask: true
+#   input: "data/03_snap_data/snap_copglo_dem30m/copglo_snapped_dem30m.tif"
+
+
+# -----------------------------------------------------------------------------
+# Processing
+# -----------------------------------------------------------------------------
+# compress_level : zlib deflate level (1–9). Default: 4.
+#                    1 → fastest / largest
+#                    4 → balanced
+#                    9 → smallest / slowest
+processing:
+  compress_level: 4
+
+
+# -----------------------------------------------------------------------------
+# Metadata  (written as global attributes)
+# -----------------------------------------------------------------------------
+metadata:
+  project:      "Maaden Project"
+  sensor:       "Refl: EMIT L2A Hyper60m"
+  resolution:   "60m"
+  crs:          "UTM Zone 37N / WGS-84"
+  created_by:   ""
+  nodata_value: "NaN"
+  units:        "reflectivity (unitless)[0,1]"
