@@ -1,0 +1,84 @@
+# =============================================================================
+# Master Grid Creation Configuration
+# =============================================================================
+# Used by create_master_grid.py to define and create a reference raster grid.
+#
+# Workflow:
+#   Step 1 — Script reads AOI, erodes it inward, and recommends a pixel size
+#             where both grid dimensions are divisible by 256.
+#   Step 2 — Script pauses and asks for confirmation in the terminal.
+#   Step 3 — On confirmation, creates a GeoTIFF filled with 1s (valid pixels).
+#
+# The output master grid is used as the reference for align_raster.py:
+#   - Pixels with value 1 = valid (kept as-is)
+#   - Pixels with value 0 = masked (set to NaN in aligned outputs)
+#   Since this grid is all 1s, no masking is applied — it purely defines
+#   the target extent, CRS, and pixel size for downstream snapping.
+#
+# Usage:
+#   python create_master_grid.py
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+# aoi    : Area of Interest file. Any GeoPandas-readable format.
+#          (.geojson, .shp, .gpkg, .zip)
+#          Relative paths resolved from project root (two levels up).
+#
+# output : Path for the output master grid GeoTIFF.
+#          File will be created automatically including parent directories.
+paths:
+  aoi: "aoi/ml_study_area.zip"
+  output: "data/00_base_grid/ml_base_grid30m.tif"
+
+
+# -----------------------------------------------------------------------------
+# Grid Parameters
+# -----------------------------------------------------------------------------
+# inner_buffer_m : Inward erosion of the AOI polygon in metres before the
+#                  grid is fitted. Ensures all grid pixels fall fully inside
+#                  the AOI with a safe margin.
+#                  Default: 1000 (1 km). Reduce if AOI is small.
+#
+# The pixel size is NOT set here — it is computed automatically by the script
+# and confirmed interactively. The script finds the best pixel size from
+# common RS resolutions (10, 15, 20, 25, 30, 60, 90, 100, 120 m) such that
+# both grid width and height are exactly divisible by 256 (one tile block).
+#
+# The CRS is also automatic — the script detects the UTM zone from the AOI
+# centroid and reprojects accordingly.
+grid:
+  inner_buffer_m: 1000
+
+  # pixel_size_m : Target pixel size in metres. This is fixed — the script
+  #                finds the nearest nx and ny (number of pixels) that are
+  #                both exactly divisible by 256 at this resolution.
+  #                The grid extent is rounded UP to the next 256-pixel block
+  #                in each dimension, then centred on the eroded AOI centroid.
+  #
+  #                Common choices by sensor:
+  #                  10  m — Sentinel-2 (visible/NIR bands)
+  #                  20  m — Sentinel-2 (SWIR bands)
+  #                  30  m — Landsat 8/9, SRTM, Copernicus DEM
+  #                  60  m — Sentinel-2 (60m bands: coastal, water vapour)
+  #                  90  m — SRTM GL3, Copernicus DEM GLO-90
+  #                  60  m — EMIT L2A (~60m native resolution)
+  pixel_size_m: 30
+
+  # override_epsg : Optional CRS override. Set to null to use the auto-detected
+  #                 UTM zone (recommended for most cases). Set to a specific EPSG
+  #                 code to force a particular projection, e.g.:
+  #                   32637   - UTM zone 37N  (override auto-detection)
+  #                   32636   - UTM zone 36N
+  #                   4326    - WGS84 geographic (not recommended for grids)
+  #                   6933    - WGS84 Equal-Area
+  override_epsg: 32637 # null if want to ommit
+
+  # tile_divisor : Both nx and ny will be rounded up to the nearest multiple
+  #                of this value. 256 is the standard GeoTIFF tile block size
+  #                and ensures compatibility with tiled readers and most
+  #                deep learning frameworks that expect power-of-2 tile grids.
+  #                Other valid choices: 128, 512, 1024.
+  tile_divisor: 256

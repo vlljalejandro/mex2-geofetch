@@ -1,0 +1,85 @@
+# =============================================================================
+# Landsat C2 L2 Mosaic Configuration
+# =============================================================================
+# This config is used by mosaic.py to mosaic Landsat Collection 2 Level-2
+# Surface Reflectance scenes into per-band GeoTIFF files ready for grid snapping.
+#
+# Usage:
+#   python mosaic.py config/02_landsat_mosaic.yaml
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Processing Parameters
+# -----------------------------------------------------------------------------
+processing:
+
+  # input_dir : Folder containing downloaded Landsat scene subdirectories.
+  #             This should point to the output of landsat_download.py, i.e.:
+  #               <output_base>/landsat_mpc/
+  #             Each scene must be in its own subfolder with an *_MTL.txt file.
+  #             Relative paths resolved from project root.
+  input_dir: "data/01_raw_data/raw_landsat_refl30m"
+
+  # output_dir : Folder where mosaicked GeoTIFFs will be saved.
+  #              Single tile:      mosaic_b{N}.tif
+  #              Multiple tiles:   landsat_mosaic_b{N}.tif
+  output_dir: "data/02_mosaic_data/mosaic_landsat_refl30m"
+
+  # bands : List of Landsat band numbers to mosaic.
+  #         Scene selection is automatic — for each WRS Path/Row combination,
+  #         the script picks the scene with the lowest cloud cover.
+  #
+  #         Landsat 8/9 Collection 2 Level-2 band reference:
+  #           Band 1  — Coastal/Aerosol  (~443nm,  30m)
+  #           Band 2  — Blue             (~482nm,  30m)
+  #           Band 3  — Green            (~562nm,  30m)
+  #           Band 4  — Red              (~655nm,  30m)
+  #           Band 5  — NIR              (~865nm,  30m)
+  #           Band 6  — SWIR-1           (~1610nm, 30m)
+  #           Band 7  — SWIR-2           (~2200nm, 30m)
+  #           Band 10 — TIR-1            (~10895nm, 100m resampled to 30m)
+  #           Band 11 — TIR-2            (~12005nm, 100m resampled to 30m)  ← L8/L9 only
+  #
+  #         Landsat 7 ETM+ band reference:
+  #           Band 1  — Blue             (~479nm,  30m)
+  #           Band 2  — Green            (~549nm,  30m)
+  #           Band 3  — Red              (~660nm,  30m)
+  #           Band 4  — NIR              (~837nm,  30m)
+  #           Band 5  — SWIR-1           (~1647nm, 30m)
+  #           Band 7  — SWIR-2           (~2204nm, 30m)
+  #           Band 6  — TIR              (~11335nm, 60m resampled to 30m)
+  #
+  #         Note: Reflectance scaling coefficients (MULT/ADD) are read
+  #         automatically from each scene's MTL.txt file.
+  bands:
+    - 1    # Coastal/Aerosol (L8/L9) or Blue (L7)
+    - 2    # Blue
+    - 3    # Green
+    - 4    # Red
+    - 5    # NIR
+    - 6    # SWIR-1
+    - 7    # SWIR-2
+
+
+  # =========================================================================
+  # Interpolation Parameters (NEW)
+  # =========================================================================
+  # Fills NaN/nodata values in the final mosaic. Useful for removing cloud
+  # masks, cloud shadows, or edge artifacts from tile seams.
+  #
+  # Methods:
+  #   - "dilate"   : Iteratively expand valid pixels into nodata regions.
+  #                  RECOMMENDED for Landsat (handles cloud masks naturally).
+  #                  Fast, 5-10 iterations typical.
+  #
+  #   - "nearest"  : Fill with nearest valid neighbor value.
+  #                  Fastest method, preserves original values, works for small gaps.
+  #
+  #   - "weighted" : Distance-weighted average of nearby valid pixels.
+  #                  Smooth transitions, best visual quality (slower).
+  #
+  #   - "spline"   : Cubic spline interpolation across regions.
+  #                  Highest quality but slowest; use for large gaps only.
+  #
+  max_workers: 32   # optional; defaults to min(32, n_scenes)

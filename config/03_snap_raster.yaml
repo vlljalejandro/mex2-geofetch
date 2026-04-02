@@ -1,0 +1,85 @@
+# =============================================================================
+# Raster Alignment (Snap to Master Grid) Configuration
+# =============================================================================
+# Used by align_raster.py to reproject and snap one or more rasters to a
+# master reference grid, then optionally apply the master as a binary mask.
+#
+# Mask behavior (auto-detected from master grid values):
+#   - Master grid all 1s  → masking skipped (grid defines extent only)
+#   - Master grid has 0s  → pixels where master == 0 are set to NaN
+#
+# This means the same script works for both:
+#   (a) A plain extent grid (all 1s) from create_master_grid.py
+#   (b) A custom mask grid with 0s burned in for exclusion zones
+#
+# Usage:
+#   python align_raster.py
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+# master_grid : Path to the master reference GeoTIFF (output of create_master_grid.py
+#               or any GeoTIFF with 0/1 values defining the target grid).
+#               Relative paths resolved from project root.
+#
+# output_dir  : Folder where aligned GeoTIFFs will be saved.
+#               Output files are named: aligned_<original_filename>.tif
+paths:
+  master_grid: "data/00_base_grid/ml_base_grid30m.tif"
+  output_dir:  "data/03_snap_data/snap_landsat_refl30m"
+
+
+# -----------------------------------------------------------------------------
+# Input Files
+# -----------------------------------------------------------------------------
+# Two options — use ONE of the following:
+#
+# Option A — glob: scan a folder for files matching a pattern.
+#   dir     : folder to scan (relative to project root or absolute)
+#   pattern : glob pattern, e.g. "*.tif", "mosaic_B*.tif", "emit_B*.tif"
+#
+# Option B — files: explicit list of file paths.
+#   Each path can be relative (to project root) or absolute.
+#
+# Examples:
+#   inputs:
+#     glob:
+#       dir: "outputs_mosaic/landsat"
+#       pattern: "mosaic_B*.tif"
+#
+#   inputs:
+#     files:
+#       - "outputs_mosaic/landsat/mosaic_B2.tif"
+#       - "outputs_mosaic/landsat/mosaic_B3.tif"
+inputs:
+  glob:
+    dir: 'data/02_mosaic_data/mosaic_landsat_refl30m'
+    pattern: "*.tif"
+
+
+# -----------------------------------------------------------------------------
+# Processing
+# -----------------------------------------------------------------------------
+# resample_alg : Resampling algorithm used when warping the INPUT raster.
+#                The master mask is never resampled — always applied as-is.
+#
+#                Options:
+#                  nearest      — preserves original values; best for scientific
+#                                 analysis and categorical data        [default]
+#                  bilinear     — smooth interpolation; good for visualization
+#                  cubic        — sharper than bilinear; slight overshoot risk
+#                  cubicspline  — very smooth; good for DEMs
+#                  lanczos      — highest quality downsampling; slow
+#                  average      — mean of contributing pixels; good for downscaling
+#                  mode         — most frequent value; best for categorical data
+#                  max / min    — max or min of contributing pixels
+#                  med          — median of contributing pixels
+#
+# apply_mask   : Whether to apply the master grid as a binary mask.
+#                  true  — pixels where master == 0 are set to NaN
+#                  false — no masking; output covers full master extent
+processing:
+  resample_alg: "nearest"
+  apply_mask: true

@@ -1,0 +1,99 @@
+# =============================================================================
+# Microsoft Planetary Computer — Landsat Download Configuration
+# =============================================================================
+# IMPORTANT: This file contains credentials — do NOT commit to version control.
+# Add it to your .gitignore:  config/landsat_download.yaml
+# =============================================================================
+# No account is required for read-only access to Planetary Computer.
+# The pystac-client + planetary-computer libraries handle token signing
+# automatically via anonymous access. If you hit rate limits, register at:
+#   https://planetarycomputer.microsoft.com
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+# aoi         : Path to your Area of Interest file. Supports any GeoPandas-
+#               readable format: .geojson, .shp, .gpkg, .zip (zipped shapefile)
+#               Relative paths are resolved from the project root (two levels
+#               above this config file). Use absolute paths to avoid ambiguity.
+#
+# output_base : Root folder where downloaded scenes will be saved.
+#               Each scene is saved in its own subfolder under output_folder.
+paths:
+  aoi: "aoi/ml_study_area.zip"
+  output_base: "data/01_raw_data"
+
+
+# -----------------------------------------------------------------------------
+# Sensor / Dataset
+# -----------------------------------------------------------------------------
+# short_name    : Planetary Computer STAC collection ID.
+#                 Browse all collections at:
+#                   https://planetarycomputer.microsoft.com/catalog
+#
+#                 Common Landsat collections:
+#                   landsat-c2-l2    - Landsat Collection 2 Level-2 (SR+ST) ← recommended
+#                   landsat-c2-l1    - Landsat Collection 2 Level-1 (TOA radiance)
+#
+#                 Other useful collections on MPC:
+#                   sentinel-2-l2a   - Sentinel-2 Level-2A Surface Reflectance (10–60m)
+#                   cop-dem-glo-30   - Copernicus DEM GLO-30 (~30m)
+#                   naip             - NAIP Aerial Imagery (USA only, ~1m)
+#                   aster-l1t        - ASTER Level-1T Radiance (~15–90m)
+#                   modis-09-daily   - MODIS Daily Surface Reflectance (~500m)
+#
+# platform      : Satellite platform filter. Must match MPC metadata exactly.
+#                 Landsat options:
+#                   landsat-9        - Landsat 9 (launched 2021, OLI-2/TIRS-2)
+#                   landsat-8        - Landsat 8 (launched 2013, OLI/TIRS)
+#                   landsat-7        - Landsat 7 (launched 1999, ETM+, SLC-off after 2003)
+#                   landsat-5        - Landsat 5 (1984–2013, TM)
+#
+# output_folder : Subfolder name created inside output_base for this dataset.
+#
+# start_date    : Temporal search start (YYYY-MM-DD).
+# end_date      : Temporal search end   (YYYY-MM-DD).
+#
+# max_cloud_cover : Maximum cloud cover percentage (0–100).
+#
+# band_keys     : List of STAC asset keys to download (spectral bands).
+#                 Landsat 8/9 C2 L2 common names:
+#                   coastal          - Band 1  (~443nm, coastal/aerosol)
+#                   blue             - Band 2  (~482nm)
+#                   green            - Band 3  (~562nm)
+#                   red              - Band 4  (~655nm)
+#                   nir08            - Band 5  (~865nm, NIR)
+#                   swir16           - Band 6  (~1610nm, SWIR-1)
+#                   swir22           - Band 7  (~2200nm, SWIR-2)
+#                   lwir11           - Band 10 (~10895nm, TIR-1)
+#                   lwir12           - Band 11 (~12005nm, TIR-2)  ← Landsat 8/9 only
+#
+# qa_prefixes   : Asset key substrings for QA and metadata files to include.
+#                 These are matched as lowercase substrings against asset keys.
+#                   qa               - Quality Assessment band (QA_PIXEL, QA_RADSAT)
+#                   mtl              - Metadata text/JSON file
+#                   ang              - Angle coefficient file
+sensors:
+  landsat:
+    short_name: "landsat-c2-l2"
+    platform: "landsat-9"
+    output_folder: "raw_landsat_refl30m"
+    start_date: "2025-01-01"
+    end_date: "2026-12-31"
+    max_cloud_cover: 1
+    band_keys:
+      - coastal
+      - blue
+      - green
+      - red
+      - nir08
+      - swir16
+      - swir22
+      - lwir11
+      - lwir12
+    qa_prefixes:
+      - qa
+      - mtl
+      - ang
