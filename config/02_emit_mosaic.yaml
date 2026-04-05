@@ -65,3 +65,8 @@ processing:
     # - 145   # ~1550 nm SWIR-1
     # - 220   # ~2200 nm SWIR-2 (mineral absorption feature)
     range: [0, 284]   # all 285 bands (0-based, inclusive)
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/02_emit_mosaic.py

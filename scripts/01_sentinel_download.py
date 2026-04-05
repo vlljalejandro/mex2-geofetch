@@ -9,6 +9,7 @@ import pyproj
 from tqdm import tqdm
 import requests
 from pathlib import Path
+from datetime import datetime, timezone
 
 
 def load_config(config_path):
@@ -23,6 +24,21 @@ def to_equal_area(geom, src_crs="EPSG:4326", dst_crs="EPSG:6933"):
     """
     transformer = pyproj.Transformer.from_crs(src_crs, dst_crs, always_xy=True)
     return transform(transformer.transform, geom)
+
+
+def scene_sort_key(item, reference_date):
+    """
+    Sort key that balances cloud cover with recency.
+    Penalizes older scenes by 1 cloud-cover point per 30 days of age,
+    so a cloud-free 2016 tile only wins if nothing newer can match it.
+    """
+    cloud = item.properties.get("eo:cloud_cover", 100)
+    dt = datetime.fromisoformat(
+        item.properties["datetime"].replace("Z", "+00:00")
+    )
+    age_days = (reference_date - dt).days
+    age_penalty = age_days / 30  # 1 point per month of age
+    return cloud + age_penalty
 
 
 def main(config_file):
@@ -67,18 +83,23 @@ def main(config_file):
     )
 
     # 4. Search Collection
-    params = config['sensors']['landsat']
+    params = config['sensors']['sentinel2']
     max_cloud = params['max_cloud_cover']
-    print(f"[*] Searching {params['short_name']} | Platform: {params['platform']} | Cloud < {max_cloud}%")
+    platform_label = params.get('platform', 'Any')
+    print(f"[*] Searching {params['short_name']} | Platform: {platform_label} | Cloud < {max_cloud}%")
+
+    query_filter = {"eo:cloud_cover": {"lt": max_cloud}}
+    if params.get('platform'):
+        query_filter["platform"] = {"eq": params['platform']}
+
+    start_date = str(params['start_date']).replace('/', '-')
+    end_date = str(params['end_date']).replace('/', '-')
 
     search = catalog.search(
         collections=[params['short_name']],
         bbox=list(aoi_geom.bounds),
-        datetime=f"{params['start_date']}/{params['end_date']}",
-        query={
-            "eo:cloud_cover": {"lt": max_cloud},
-            "platform":       {"eq": params['platform']}
-        }
+        datetime=f"{start_date}/{end_date}",
+        query=query_filter
     )
 
     items = list(search.items())
@@ -89,20 +110,11 @@ def main(config_file):
     print(f"[*] Found {len(items)} scenes. Optimizing coverage...")
 
     # 5. Greedy Spatial Optimization
-    # Sort by cloud cover (lowest first)
-    sorted_items = sorted(items, key=lambda x: x.properties.get("eo:cloud_cover", 100))
+    # Sort by cloud cover + recency penalty so recent scenes are preferred
+    # over older scenes with marginally lower cloud cover.
+    reference_date = datetime.now(timezone.utc)
+    sorted_items = sorted(items, key=lambda x: scene_sort_key(x, reference_date))
 
-    # Deduplicate by path/row — keep only the lowest-cloud scene per tile footprint
-    seen_tiles = set()
-    unique_items = []
-    for item in sorted_items:
-        tile_id = item.properties.get("s2:mgrs_tile")  # e.g. "37QDD"
-        if tile_id not in seen_tiles:
-            seen_tiles.add(tile_id)
-            unique_items.append(item)
-    sorted_items = unique_items
-
-    # Project AOI to equal-area CRS once; all spatial comparisons done here
     aoi_geom_ea = to_equal_area(aoi_geom)
     accumulated_ea = Polygon()
     min_contribution = aoi_geom_ea.area * 0.0001
@@ -110,19 +122,31 @@ def main(config_file):
     selected_items = []
 
     for item in sorted_items:
-        # Stop early if AOI is fully covered
         if accumulated_ea.covers(aoi_geom_ea):
             break
 
-        item_geom = shape(item.geometry)
-        intersection_ea = to_equal_area(item_geom.intersection(aoi_geom))
+        # Use proj:geometry (actual valid-data footprint) instead of
+        # item.geometry (theoretical grid cell) to avoid overclaiming
+        # coverage on edge/cropped tiles.
+        proj_geom = item.properties.get("proj:geometry")
+        proj_epsg = item.properties.get("proj:epsg")
+
+        if proj_geom and proj_epsg:
+            item_geom_ea = to_equal_area(
+                shape(proj_geom),
+                src_crs=f"EPSG:{proj_epsg}",
+                dst_crs="EPSG:6933"
+            )
+        else:
+            item_geom_ea = to_equal_area(shape(item.geometry))
+
+        intersection_ea = item_geom_ea.intersection(aoi_geom_ea)
 
         if intersection_ea.is_empty:
             continue
 
         new_area = intersection_ea.difference(accumulated_ea)
 
-        # 1 m² minimum threshold in EPSG:6933 equal-area projection
         if not new_area.is_empty and new_area.area > min_contribution:
             selected_items.append(item)
             accumulated_ea = accumulated_ea.union(intersection_ea).buffer(0)
@@ -130,12 +154,12 @@ def main(config_file):
     if not selected_items:
         print("[!] Optimization resulted in 0 scenes selected.")
         return
-    
+
     # Calculate and print AOI coverage percentage
     covered_area = accumulated_ea.intersection(aoi_geom_ea).area
     total_area = aoi_geom_ea.area
     coverage_pct = (covered_area / total_area) * 100 if total_area > 0 else 0.0
-    print(f"[*] Selected scenes cover {coverage_pct:.1f}% of the AOI.")
+    print(f"[*] Selected {len(selected_items)} scenes covering {coverage_pct:.1f}% of the AOI.")
 
     # 6. Download (Signed URLs via Planetary Computer)
     out_dir = Path(config['paths']['output_base'])
@@ -143,11 +167,9 @@ def main(config_file):
     final_dir = out_dir / params['output_folder']
     final_dir.mkdir(parents=True, exist_ok=True)
 
-    # Asset keys to download — configurable per collection
     band_keys   = set(params['band_keys'])
     qa_prefixes = params['qa_prefixes']
 
-    print(f"[*] Selected {len(selected_items)} scenes for optimal coverage.")
     print(f"[*] Downloading to: {final_dir}")
 
     for item in tqdm(selected_items, desc=f"Downloading {params['short_name']}", unit="scene"):
@@ -159,12 +181,17 @@ def main(config_file):
             is_meta = any(pref in key.lower() for pref in qa_prefixes)
 
             if is_band or is_meta:
-                filename = Path(asset.href.split('?')[0]).name
+                extension = Path(asset.href.split('?')[0]).suffix
+                if not extension:
+                    extension = ".tif"
+                filename = f"{item.id}_{key}{extension}"
                 save_path = scene_dir / filename
 
                 if not save_path.exists():
                     try:
-                        with requests.get(asset.href, stream=True) as r:
+                        signed_href = planetary_computer.sign(asset.href)
+
+                        with requests.get(signed_href, stream=True) as r:
                             r.raise_for_status()
                             with open(save_path, 'wb') as f:
                                 for chunk in r.iter_content(chunk_size=1024 * 1024):

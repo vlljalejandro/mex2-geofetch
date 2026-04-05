@@ -82,3 +82,8 @@ grid:
   #                deep learning frameworks that expect power-of-2 tile grids.
   #                Other valid choices: 128, 512, 1024.
   tile_divisor: 256
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/00_master_grid.py

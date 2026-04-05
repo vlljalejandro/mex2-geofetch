@@ -81,5 +81,12 @@ processing:
   #
   #   - "spline"   : Cubic spline interpolation across regions.
   #                  Highest quality but slowest; use for large gaps only.
-  #
+  
+  # interpolation_method: "nearest"
+  # interpolation_max_size: 20
   max_workers: 32   # optional; defaults to min(32, n_scenes)
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/02_landsat_mosaic.py
