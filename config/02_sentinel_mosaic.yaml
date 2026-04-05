@@ -1,0 +1,103 @@
+# =============================================================================
+# Sentinel-2 L2A Mosaic Configuration
+# =============================================================================
+# This config is used by 02_sentinel2_mosaic.py to mosaic Sentinel-2 Level-2A
+# Surface Reflectance scenes into per-band GeoTIFF files ready for grid snapping.
+#
+# Usage:
+#   python 02_sentinel2_mosaic.py config/02_sentinel2_mosaic.yaml
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Processing Parameters
+# -----------------------------------------------------------------------------
+processing:
+
+  # input_dir : Folder containing downloaded Sentinel-2 scene subdirectories.
+  #             This should point to the output of 01_sentinel2_download.py, i.e.:
+  #               <output_base>/raw_sentinel2_refl/
+  #             Each scene must be in its own subfolder with band files matching
+  #             the pattern: {TILE}_{DATETIME}_{BAND_KEY}.tif
+  #             e.g.: T37RFH_20251108T075141_B02_10m.tif
+  #             Relative paths resolved from project root.
+  input_dir: "data/01_raw_data/raw_sentinel_refl"
+
+  # output_dir : Folder where mosaicked GeoTIFFs will be saved.
+  #              One file per band key: sentinel2_mosaic_{BAND_KEY}.tif
+  #              e.g.: sentinel2_mosaic_B02_10m.tif
+  output_dir: "data/02_mosaic_data/mosaic_sentinel_refl"
+
+  # bands : List of Sentinel-2 band keys to mosaic.
+  #         Must match the resolution suffix in downloaded filenames exactly.
+  #         Scene selection is automatic — for each MGRS tile, the script picks
+  #         the scene with the lowest SCL-derived cloud cover.
+  #
+  #         Sentinel-2 L2A band reference:
+  #
+  #         10m bands:
+  #           B02_10m  — Blue             (~490nm,  10m)
+  #           B03_10m  — Green            (~560nm,  10m)
+  #           B04_10m  — Red              (~665nm,  10m)
+  #           B08_10m  — NIR (broad)      (~842nm,  10m)
+  #
+  #         20m bands:
+  #           B05_20m  — Red Edge 1       (~705nm,  20m)
+  #           B06_20m  — Red Edge 2       (~740nm,  20m)
+  #           B07_20m  — Red Edge 3       (~783nm,  20m)
+  #           B8A_20m  — NIR (narrow)     (~865nm,  20m)
+  #           B11_20m  — SWIR-1           (~1610nm, 20m)
+  #           B12_20m  — SWIR-2           (~2190nm, 20m)
+  #
+  #         60m bands:
+  #           B01_60m  — Coastal/Aerosol  (~443nm,  60m)
+  #           B09_60m  — Water Vapour     (~945nm,  60m)
+  #
+  #         Note: Reflectance scaling (DN - 1000) / 10000 is applied automatically.
+  #         This matches Sentinel-2 processing baseline >= 04.00 (all 2022+ data).
+  bands:
+    # 10m
+    - B02_10m    # Blue
+    - B03_10m    # Green
+    - B04_10m    # Red
+    - B08_10m    # NIR (broad)
+    # 20m
+    - B05_20m    # Red Edge 1
+    - B06_20m    # Red Edge 2
+    - B07_20m    # Red Edge 3
+    - B8A_20m    # NIR (narrow)
+    - B11_20m    # SWIR-1
+    - B12_20m    # SWIR-2
+    # 60m
+    - B01_60m    # Coastal/Aerosol
+    - B09_60m    # Water Vapour
+
+
+  # =========================================================================
+  # Interpolation Parameters
+  # =========================================================================
+  # Fills NaN/nodata values in the final mosaic. Useful for removing cloud
+  # masks, cloud shadows, or edge artifacts from tile seams.
+  #
+  # Methods:
+  #   - "dilate"   : Iteratively expand valid pixels into nodata regions.
+  #                  RECOMMENDED for Sentinel-2 (handles SCL cloud masks naturally).
+  #                  Fast, 5-10 iterations typical.
+  #
+  #   - "nearest"  : Fill with nearest valid neighbor value.
+  #                  Fastest method, preserves original values, works for small gaps.
+  #
+  #   - "weighted" : Distance-weighted average of nearby valid pixels.
+  #                  Smooth transitions, best visual quality (slower).
+  #
+  #   - "spline"   : Cubic spline interpolation across regions.
+  #                  Highest quality but slowest; use for large gaps only.
+
+  # interpolation_method: "nearest"
+  # interpolation_max_size: 20
+  max_workers: 32   # optional; defaults to min(32, n_scenes)
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/02_sentinel_mosaic.py

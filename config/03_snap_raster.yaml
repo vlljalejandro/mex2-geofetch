@@ -27,7 +27,7 @@
 # output_dir  : Folder where aligned GeoTIFFs will be saved.
 #               Output files are named: aligned_<original_filename>.tif
 paths:
-  master_grid: "data/00_base_grid/ml_base_grid30m.tif"
+  master_grid: "data/00_base_grid/maaden_base_grid30m.tif"
   output_dir:  "data/03_snap_data/snap_landsat_refl30m"
 
 
@@ -83,3 +83,8 @@ inputs:
 processing:
   resample_alg: "nearest"
   apply_mask: true
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/03_snap_raster.py

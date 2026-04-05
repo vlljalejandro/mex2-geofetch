@@ -83,3 +83,8 @@ metadata:
   created_by:   ""
   nodata_value: "NaN"
   units:        "reflectivity (unitless)[0,1]"
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/04_cube_raster.py

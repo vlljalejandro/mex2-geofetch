@@ -58,7 +58,7 @@ paths:
 #                   Recommended starting value: 10–20.
 #                   Values below 5 may return zero results over many AOIs.
 #
-# band_keys     : List of STAC asset keys to download (spectral bands).
+# band_keys     : List of STAC asset keys to download (spectral bands + extras).
 #                 Sentinel-2 L2A asset keys and resolutions:
 #
 #                 10m bands:
@@ -79,6 +79,18 @@ paths:
 #                   B01              - Coastal/Aerosol (~443nm)
 #                   B09              - Water Vapour    (~945nm)
 #
+#                 Data / Overview:
+#                   visual           - True color image      (GeoTIFF/COG, 10m RGB composite)
+#                   rendered_preview - Rendered preview       (PNG overview, quick visual QC)
+#                   tilejson         - TileJSON               (JSON tile endpoint descriptor)
+#
+#                 Metadata:
+#                   safe-manifest        - SAFE manifest        (XML, top-level product descriptor)
+#                   granule-metadata     - Granule metadata     (XML, per-tile geometry & sensing info)
+#                   inspire-metadata     - INSPIRE metadata     (XML, EU INSPIRE directive compliance)
+#                   product-metadata     - Product metadata     (XML, full MTD_MSIL2A equivalent)
+#                   datastrip-metadata   - Datastrip metadata   (XML, radiometric calibration info)
+#
 # qa_prefixes   : Asset key substrings for QA and auxiliary files to include.
 #                 Matched as lowercase substrings against asset keys.
 #                   scl              - Scene Classification Layer (cloud/shadow/water mask)
@@ -88,11 +100,12 @@ sensors:
   sentinel2:
     short_name: "sentinel-2-l2a"
     platform: "Sentinel-2A"        # Set to "Sentinel-2B" or remove to include both
-    output_folder: "raw_sentinel2_refl"
+    output_folder: "raw_sentinel_refl"
     start_date: "2025-01-01"
     end_date: "2026-12-31"
-    max_cloud_cover: 10            # Increase if too few scenes are returned
+    max_cloud_cover: 1            # Increase if too few scenes are returned
     band_keys:
+      # ── Spectral bands ─────────────────────────────────────────────────────
       # 10m resolution
       - B02              # Blue
       - B03              # Green
@@ -108,7 +121,25 @@ sensors:
       # 60m resolution
       - B01              # Coastal/Aerosol
       - B09              # Water Vapour
+
+      # ── Data / Overview ────────────────────────────────────────────────────
+      - visual           # True color image         (GeoTIFF/COG — RGB 10m composite)
+      - rendered_preview # Rendered preview          (PNG — quick visual QC thumbnail)
+      - tilejson         # TileJSON                  (JSON — tile endpoint descriptor)
+
+      # ── Metadata ───────────────────────────────────────────────────────────
+      - safe-manifest        # SAFE manifest             (XML — top-level product descriptor)
+      - granule-metadata     # Granule metadata          (XML — per-tile geometry & sensing info)
+      - inspire-metadata     # INSPIRE metadata          (XML — EU INSPIRE directive compliance)
+      - product-metadata     # Product metadata          (XML — full MTD_MSIL2A equivalent)
+      - datastrip-metadata   # Datastrip metadata        (XML — radiometric calibration info)
+
     qa_prefixes:
       - scl              # Scene Classification Layer
       - aot              # Aerosol Optical Thickness
       - wvp              # Water Vapour map
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/01_sentinel_download.py
