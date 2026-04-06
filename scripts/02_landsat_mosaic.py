@@ -3,11 +3,14 @@ import re
 import yaml
 import numpy as np
 import rasterio
+from rasterio.crs import CRS
 from rasterio.merge import merge
 from scipy.ndimage import distance_transform_edt, label
 from pathlib import Path
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+
 
 
 def load_config(config_path):
@@ -83,16 +86,71 @@ def fill_small_nodata(data, max_size=20):
 
     return filled
 
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 
-def mosaic_and_save(tif_paths, output_path):
-    """
-    Opens a list of GeoTIFF paths, mosaics them with feather blending,
-    and saves the result. Closes all temp files after saving, and only
-    deletes them once the output is confirmed written.
-    """
-    open_files = [rasterio.open(p) for p in tif_paths]
 
-    # FIX #3: separate cleanup from processing so failures don't destroy source tiles
+def reproject_to_crs(src_path, target_crs, tmp_suffix="_reproj.tif"):
+    """
+    Reprojects a GeoTIFF to target_crs in-place (writes a sibling temp file,
+    then replaces the original). Returns the path (unchanged) for chaining.
+    """
+    reproj_path = Path(str(src_path).replace(".tif", tmp_suffix))
+
+    with rasterio.open(src_path) as src:
+        if src.crs == target_crs:
+            return src_path  # nothing to do
+
+        transform, width, height = calculate_default_transform(
+            src.crs, target_crs, src.width, src.height, *src.bounds
+        )
+        profile = src.profile.copy()
+        profile.update(
+            crs=target_crs,
+            transform=transform,
+            width=width,
+            height=height,
+        )
+
+        with rasterio.open(reproj_path, "w", **profile) as dst:
+            for i in range(1, src.count + 1):
+                reproject(
+                    source=rasterio.band(src, i),
+                    destination=rasterio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=target_crs,
+                    resampling=Resampling.bilinear,
+                )
+
+    # Replace original with reprojected version
+    src_path.unlink()
+    reproj_path.rename(src_path)
+    return src_path
+
+
+def mosaic_and_save(tif_paths, output_path, target_crs=None):
+    """
+    Opens a list of GeoTIFF paths, reprojects all to a common CRS if needed,
+    mosaics them with feather blending, and saves the result.
+    """
+    # ── Normalise CRS ────────────────────────────────────────────────────────
+    if target_crs is None:
+        with rasterio.open(tif_paths[0]) as ref:
+            target_crs = ref.crs
+
+    aligned_paths = []
+    for p in tif_paths:
+        with rasterio.open(p) as src:
+            needs_reproj = src.crs != target_crs
+        if needs_reproj:
+            print(f"  [~] Reprojecting {p.name} → {target_crs}")
+            reproject_to_crs(p, target_crs)
+        aligned_paths.append(p)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    open_files = [rasterio.open(p) for p in aligned_paths]
+
     try:
         mosaic, out_transform = merge(open_files, method=distance_weighted_merge)
         mosaic = fill_small_nodata(mosaic, max_size=20)
@@ -104,7 +162,7 @@ def mosaic_and_save(tif_paths, output_path):
             "width":     mosaic.shape[2],
             "transform": out_transform,
             "dtype":     rasterio.float32,
-            "nodata":    np.nan
+            "nodata":    np.nan,
         })
 
         with rasterio.open(output_path, "w", **out_meta) as dst:
@@ -114,13 +172,11 @@ def mosaic_and_save(tif_paths, output_path):
         for f in open_files:
             f.close()
 
-    # Only delete temp files after the output is confirmed to exist
     if output_path.exists():
-        for p in tif_paths:
+        for p in aligned_paths:
             Path(p).unlink(missing_ok=True)
     else:
         print(f"[!] Output not confirmed at {output_path} — temp files preserved.")
-
 
 # =============================================================================
 # Landsat Reader
@@ -251,6 +307,10 @@ def process_landsat(config, project_root):
     output_dir = output_dir if output_dir.is_absolute() else project_root / output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    target_crs_str = params.get("target_crs")
+    target_crs = CRS.from_string(target_crs_str) if target_crs_str else None
+    # pass target_crs into mosaic_and_save(temp_paths, out_path, target_crs=target_crs)
+
     if not input_dir.exists():
         print(f"[!] Input directory missing: {input_dir}")
         return
@@ -294,7 +354,7 @@ def process_landsat(config, project_root):
 
         print(f"[*] Mosaicking Band {band} with feathering...")
         try:
-            mosaic_and_save(temp_paths, out_path)
+            mosaic_and_save(temp_paths, out_path, target_crs=target_crs)
             print(f"[+] Saved: {out_path.name}")
         except Exception as e:
             print(f"[!] Mosaic failed for Band {band}: {e}")
