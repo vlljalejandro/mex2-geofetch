@@ -22,7 +22,7 @@
 # output_base : Root folder where downloaded scenes will be saved.
 #               Each scene is saved in its own subfolder under output_folder.
 paths:
-  aoi: "aoi/maaden_study_area.zip"
+  aoi: "aoi/shield_min_area_hull.zip"
   output_base: "data/01_raw_data"
 
 
@@ -79,7 +79,7 @@ sensors:
   landsat:
     short_name: "landsat-c2-l2"
     platform: "landsat-9"
-    output_folder: "raw_landsat_refl30m"
+    output_folder: "shield_raw_landsat_refl30m"
     start_date: "2025-01-01"
     end_date: "2026-12-31"
     max_cloud_cover: 1

@@ -27,8 +27,8 @@
 # output_dir  : Folder where aligned GeoTIFFs will be saved.
 #               Output files are named: aligned_<original_filename>.tif
 paths:
-  master_grid: "data/00_base_grid/maaden_base_grid30m.tif"
-  output_dir:  "data/03_snap_data/snap_landsat_refl30m"
+  master_grid: "data/00_base_grid/maaden_base_grid20m.tif"
+  output_dir:  "data/03_snap_data/geologya"
 
 
 # -----------------------------------------------------------------------------

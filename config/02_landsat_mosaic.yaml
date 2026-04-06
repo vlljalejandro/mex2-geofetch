@@ -19,12 +19,14 @@ processing:
   #               <output_base>/landsat_mpc/
   #             Each scene must be in its own subfolder with an *_MTL.txt file.
   #             Relative paths resolved from project root.
-  input_dir: "data/01_raw_data/raw_landsat_refl30m"
+  input_dir: "data/01_raw_data/shield_raw_landsat_refl30m"
 
   # output_dir : Folder where mosaicked GeoTIFFs will be saved.
   #              Single tile:      mosaic_b{N}.tif
   #              Multiple tiles:   landsat_mosaic_b{N}.tif
-  output_dir: "data/02_mosaic_data/mosaic_landsat_refl30m"
+  output_dir: "data/02_mosaic_data/shield_mosaic_landsat_refl30m"
+
+  target_crs: "EPSG:32637"   # WGS84 / UTM zone 37N
 
   # bands : List of Landsat band numbers to mosaic.
   #         Scene selection is automatic — for each WRS Path/Row combination,

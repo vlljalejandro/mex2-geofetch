@@ -101,8 +101,8 @@ sensors:
     short_name: "sentinel-2-l2a"
     platform: "Sentinel-2A"        # Set to "Sentinel-2B" or remove to include both
     output_folder: "raw_sentinel_refl"
-    start_date: "2025-01-01"
-    end_date: "2026-12-31"
+    start_date: "2025-10-01"
+    end_date: "2025-11-01"
     max_cloud_cover: 1            # Increase if too few scenes are returned
     band_keys:
       # ── Spectral bands ─────────────────────────────────────────────────────
