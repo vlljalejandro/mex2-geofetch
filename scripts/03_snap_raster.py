@@ -24,6 +24,7 @@ def align_raster(
     output_path,
     resample_alg=gdal.GRA_NearestNeighbour,
     apply_mask=False,
+    creation_opts=None,
 ) -> None:
     """
     Reprojects and aligns a raster to perfectly match a reference (master) grid,
@@ -51,7 +52,18 @@ def align_raster(
                      Use GRA_Bilinear for continuous data like DEMs.
     apply_mask     : If True, pixels where master == 0 are set to NaN.
                      Auto-skipped if the master grid contains no zeros.
+    creation_opts  : List of GDAL creation option strings for the output GeoTIFF.
+                     Defaults to LZW compression, IF_SAFER BigTIFF, 256px tiles.
     """
+
+    if creation_opts is None:
+        creation_opts = [
+            "COMPRESS=LZW",
+            "BIGTIFF=IF_SAFER",
+            "TILED=YES",
+            "BLOCKXSIZE=256",
+            "BLOCKYSIZE=256",
+        ]
 
     in_file  = Path(input_path)
     ref_file = Path(reference_path)
@@ -89,7 +101,7 @@ def align_raster(
     master_data = ref_ds.GetRasterBand(1).ReadAsArray()
 
     # Detect whether master grid contains any 0s (masked pixels)
-    has_zeros   = bool(np.any(master_data == 0))
+    has_zeros = bool(np.any(master_data == 0))
 
     if apply_mask and not has_zeros:
         print(f"    Mask     : skipped (master grid is all 1s — extent-only grid)")
@@ -117,7 +129,7 @@ def align_raster(
         dstNodata=np.nan,
         targetAlignedPixels=False,
         warpOptions=["INIT_DEST=NO_DATA"],
-        creationOptions=["COMPRESS=LZW", "TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256"]
+        creationOptions=creation_opts,
     )
 
     out_ds = gdal.Warp(str(out_file), str(in_file), options=warp_options)
@@ -133,7 +145,7 @@ def align_raster(
         for band_index in range(1, out_ds.RasterCount + 1):
             band = out_ds.GetRasterBand(band_index)
             data = band.ReadAsArray()
-            data[mask]       = np.nan
+            data[mask]         = np.nan
             data[data < -1e20] = np.nan    # remove extreme float warp artifacts
             band.WriteArray(data)
             band.SetNoDataValue(np.nan)
@@ -192,8 +204,25 @@ def main(config_file):
     if alg_name not in RESAMPLE_ALGORITHMS:
         print(f"[!] Unknown resample_alg '{alg_name}'. Falling back to nearest.")
 
+    # Output format options
+    fmt        = config.get('output_format', {})
+    bigtiff    = str(fmt.get('bigtiff',    'IF_SAFER')).upper()
+    compress   = str(fmt.get('compress',   'LZW')).upper()
+    predictor  = fmt.get('predictor',  1)
+    block_size = fmt.get('block_size', 256)
+
+    creation_opts = [
+        f"COMPRESS={compress}",
+        f"BIGTIFF={bigtiff}",
+        "TILED=YES",
+        f"BLOCKXSIZE={block_size}",
+        f"BLOCKYSIZE={block_size}",
+    ]
+    if compress == "DEFLATE":
+        creation_opts.append(f"PREDICTOR={predictor}")
+
     # Input files — glob pattern or explicit list
-    inputs_cfg = config['inputs']
+    inputs_cfg  = config['inputs']
     input_files = []
 
     if 'glob' in inputs_cfg:
@@ -212,10 +241,13 @@ def main(config_file):
     print(f"[*] Master grid : {master_file.name}")
     print(f"[*] Resample    : {alg_name}")
     print(f"[*] Apply mask  : {apply_mask}")
+    print(f"[*] BigTIFF     : {bigtiff}")
+    print(f"[*] Compress    : {compress}" + (f" (predictor={predictor})" if compress == "DEFLATE" else ""))
+    print(f"[*] Block size  : {block_size} px")
     print(f"[*] Files to align: {len(input_files)}\n")
 
     for input_file in input_files:
-        output_file = out_dir / input_file.name.replace("_b", "_snapped_b")
+        output_file = out_dir / f"snapped_{input_file.name}"
         try:
             align_raster(
                 input_path=input_file,
@@ -223,6 +255,7 @@ def main(config_file):
                 output_path=output_file,
                 resample_alg=resample,
                 apply_mask=apply_mask,
+                creation_opts=creation_opts,
             )
         except Exception as e:
             print(f"[!] Failed: {input_file.name} — {e}\n")
