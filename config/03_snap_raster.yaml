@@ -25,10 +25,10 @@
 #               Relative paths resolved from project root.
 #
 # output_dir  : Folder where aligned GeoTIFFs will be saved.
-#               Output files are named: aligned_<original_filename>.tif
+#               Output files are named: snapped_<original_filename>.tif
 paths:
-  master_grid: "data/00_base_grid/maaden_base_grid20m.tif"
-  output_dir:  "data/03_snap_data/geologya"
+  master_grid: "data/00_base_grid/shiled_base_grid30m.tif"
+  output_dir:  "data/03_snap_data/snap_shield_landsat_refl30m"
 
 
 # -----------------------------------------------------------------------------
@@ -55,7 +55,7 @@ paths:
 #       - "outputs_mosaic/landsat/mosaic_B3.tif"
 inputs:
   glob:
-    dir: 'data/02_mosaic_data/mosaic_landsat_refl30m'
+    dir: 'data/02_mosaic_data/shield_mosaic_landsat_refl30m'
     pattern: "*.tif"
 
 
@@ -83,6 +83,38 @@ inputs:
 processing:
   resample_alg: "nearest"
   apply_mask: true
+
+
+# -----------------------------------------------------------------------------
+# Output Format
+# -----------------------------------------------------------------------------
+# Controls GeoTIFF creation options passed to GDAL.
+#
+# bigtiff    : Whether to write a BigTIFF (64-bit) instead of classic TIFF.
+#                YES       — always write BigTIFF
+#                NO        — always write classic TIFF (4 GB limit)
+#                IF_SAFER  — auto-upgrade to BigTIFF only when output
+#                            would exceed 4 GB; keeps smaller files
+#                            compatible with older tools      [default]
+#
+# compress   : Compression codec.
+#                LZW      — fast, lossless, wide support        [default]
+#                DEFLATE  — better ratio than LZW for float data;
+#                           pair with predictor: 2
+#                NONE     — no compression; fastest write speed
+#
+# predictor  : Delta filter applied before compression (integers only).
+#   (DEFLATE   1 — no predictor                               [default]
+#    only)      2 — horizontal differencing; best for Float32/DEMs
+#
+# block_size : Internal tile size in pixels (must be a power of 2).
+#              256 is a good default; use 512 for very large rasters.
+output_format:
+  bigtiff:    "IF_SAFER"
+  compress:   "LZW"
+  predictor:  2
+  block_size: 512
+
 
 # -----------------------------------------------------------------------------
 # Running Code

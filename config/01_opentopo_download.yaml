@@ -11,7 +11,7 @@
 #   https://portal.opentopography.org/myopentopo
 # Free accounts include access to all global DEM datasets listed below.
 auth:
-  api_key: "*******************"
+  api_key: "6483fca4bf73911de62bbe0189b4a127"
 
 
 # -----------------------------------------------------------------------------
@@ -23,8 +23,8 @@ auth:
 # output_base : Root folder where the downloaded DEM will be saved.
 #               The file will be named:  <demtype>_subset.<output_format>
 paths:
-  aoi: "aoi/ml_study_area.zip"
-  output_base: "data/00_raw_data/raw_copglo_dem30m"
+  aoi: "aoi/shield_minarea_hull.zip"
+  output_base: "data/01_raw_data/shield_raw_copglo_dem30m"
 
 
 # -----------------------------------------------------------------------------
