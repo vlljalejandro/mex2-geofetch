@@ -1,4 +1,3 @@
 # mex2-geofetch
-This repository contains the code for the paper "Geofetch: A Benchmark for Geospatial Data Retrieval" (https://arxiv.org/abs/2406.12345). The code is organized into the following directories:
-- `data/`: Contains the code for downloading and preprocessing the geospatial datasets used in the paper.
-- `models/`: Contains the code for training and evaluating the geospatial data retrieval models.
+
+A modular geospatial preprocessing repository for downloading, mosaicking, aligning, stacking, and converting tiled remote sensing datasets from multiple sources including EMIT, Landsat, Sentinel, and OpenTopography. The workflow supports creation of a master tiling grid, acquisition of raw imagery and elevation data, raster mosaicking and histogram normalization, snapping rasters to a common grid, stacking layers into multiband raster cubes, deriving Sentinel-based quaternary cover products, and exporting raster outputs to shapefile format for further geospatial analysis.
