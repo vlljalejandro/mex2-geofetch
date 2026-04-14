@@ -1,0 +1,47 @@
+# Configuration for 01_ggmplus_download.py
+# ─────────────────────────────────────────
+# GGMplus coverage: land + near-coastal areas within ±60° latitude.
+# Data source: http://ddfe.curtin.edu.au/gravitymodels/GGMplus
+# Resolution: 0.002° (~200 m) in 5°×5° tiles.
+# Reference: Hirt et al. (2013), GRL, doi:10.1002/grl.50838
+
+# -----------------------------------------------------------------------------
+# Parameters
+# -----------------------------------------------------------------------------
+
+paths:
+  # Path to your AOI file (GeoPackage, Shapefile, GeoJSON …).
+  # Relative paths are resolved from the project root (two levels above config/).
+  aoi: aoi/dem.zip
+
+  # Root folder for all GGMplus output.
+  # Sub-folders created automatically:
+  #   raw_binary/   – downloaded binary tiles (.ga, .dg, …)
+  #   raw_png/      – preview PNG images (.ga.png, .dg.png, …)
+  #   raw_tif/    – per-tile float32 GeoTIFFs
+  #   mosaic/        – mosaicked, ready-to-use GeoTIFFs
+  output_base: data/ggmplus
+
+ggmplus_params:
+  # Base URL of the Curtin University GGMplus file server.
+  base_url: http://ddfe.curtin.edu.au/gravitymodels/GGMplus/data
+ 
+  # Available functionals (subdirectory name on the server):
+  #   ga    – free-fall gravity accelerations        (mGal)    → file ext: .ga
+  #   dg    – gravity disturbances                   (mGal)    → file ext: .dg
+  #   xi    – North-South deflection of vertical     (arcsec)  → file ext: .xi
+  #   eta   – East-West  deflection of vertical      (arcsec)  → file ext: .eta
+  #   geoid – geoid / quasigeoid heights             (m)       → file ext: .ha
+  functionals:
+    - ga
+    - dg
+    # - xi
+    # - eta
+    # - geoid
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/01_ggmplus_download.py
+
+
