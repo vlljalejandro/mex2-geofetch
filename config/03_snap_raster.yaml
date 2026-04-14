@@ -27,8 +27,8 @@
 # output_dir  : Folder where aligned GeoTIFFs will be saved.
 #               Output files are named: snapped_<original_filename>.tif
 paths:
-  master_grid: "data/00_base_grid/shiled_base_grid30m.tif"
-  output_dir:  "data/03_snap_data/snap_shield_landsat_refl30m"
+  master_grid: "data/00_base_grid/magnetic_base_grid180m.tif"
+  output_dir:  "data/03_snap_data/snap_ggmplus_nn"
 
 
 # -----------------------------------------------------------------------------
@@ -55,8 +55,9 @@ paths:
 #       - "outputs_mosaic/landsat/mosaic_B3.tif"
 inputs:
   glob:
-    dir: 'data/02_mosaic_data/shield_mosaic_landsat_refl30m'
+    dir: 'data/ggmplus'
     pattern: "*.tif"
+
 
 
 # -----------------------------------------------------------------------------
