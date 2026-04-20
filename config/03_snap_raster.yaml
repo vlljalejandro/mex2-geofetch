@@ -28,7 +28,7 @@
 #               Output files are named: snapped_<original_filename>.tif
 paths:
   master_grid: "data/00_base_grid/magnetic_base_grid180m.tif"
-  output_dir:  "data/03_snap_data/snap_ggmplus_nn"
+  output_dir:  "data/03_snap_data/snap_magnetic_200mcubicspline"
 
 
 # -----------------------------------------------------------------------------
@@ -55,7 +55,7 @@ paths:
 #       - "outputs_mosaic/landsat/mosaic_B3.tif"
 inputs:
   glob:
-    dir: 'data/ggmplus'
+    dir: 'data/02_mosaic_data/01_mosaic'
     pattern: "*.tif"
 
 
@@ -82,7 +82,7 @@ inputs:
 #                  true  — pixels where master == 0 are set to NaN
 #                  false — no masking; output covers full master extent
 processing:
-  resample_alg: "nearest"
+  resample_alg: "cubicspline"
   apply_mask: true
 
 
