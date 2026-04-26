@@ -1,22 +1,18 @@
 # =============================================================================
-# Master Grid Creation Configuration
+# Base Grid Creation Configuration
 # =============================================================================
-# Used by create_master_grid.py to define and create a reference raster grid.
+# Used by 00_base_grid.py to define and create a reference raster grid.
 #
 # Workflow:
 #   Step 1 — Script reads AOI, erodes it inward, and recommends a pixel size
-#             where both grid dimensions are divisible by 256.
+#             where both grid dimensions are divisible by a pixel size.
 #   Step 2 — Script pauses and asks for confirmation in the terminal.
 #   Step 3 — On confirmation, creates a GeoTIFF filled with 1s (valid pixels).
 #
 # The output master grid is used as the reference for align_raster.py:
 #   - Pixels with value 1 = valid (kept as-is)
 #   - Pixels with value 0 = masked (set to NaN in aligned outputs)
-#   Since this grid is all 1s, no masking is applied — it purely defines
-#   the target extent, CRS, and pixel size for downstream snapping.
 #
-# Usage:
-#   python create_master_grid.py
 # =============================================================================
 
 
@@ -30,8 +26,8 @@
 # output : Path for the output master grid GeoTIFF.
 #          File will be created automatically including parent directories.
 paths:
-  aoi: "aoi/maaden_study_area.zip"
-  output: "data/00_base_grid/ml_base_grid30m.tif"
+  aoi: "aoi/sa_shield_only.zip"
+  output: "data/00_base_grid/shield_only.tif"
 
 
 # -----------------------------------------------------------------------------
@@ -50,7 +46,8 @@ paths:
 # The CRS is also automatic — the script detects the UTM zone from the AOI
 # centroid and reprojects accordingly.
 grid:
-  inner_buffer_m: 1000
+  # buffer_m: 1000    # positive = shrink AOI inward (safe interior)
+  buffer_m: -5000  # negative = expand AOI outward
 
   # pixel_size_m : Target pixel size in metres. This is fixed — the script
   #                finds the nearest nx and ny (number of pixels) that are
@@ -86,4 +83,4 @@ grid:
 # -----------------------------------------------------------------------------
 # Running Code
 # -----------------------------------------------------------------------------
-# python scripts/00_master_grid.py
+# python scripts/00_base_grid.py
