@@ -102,12 +102,13 @@ def recommend(config, project_root):
     # Always reproject from EPSG:4326 (we already called .to_crs(epsg=4326) above)
     aoi_utm = to_crs(aoi_geom_4326, 4326, utm_epsg)
 
-    # -- Erode inward --
-    buffer_m   = config['grid'].get('inner_buffer_m', 1000)
+    # -- Erode inward/outward --
+    buffer_m   = config['grid'].get('buffer_m', 1000)   # positive = inward, negative = outward
     eroded_utm = aoi_utm.buffer(-buffer_m)
 
     if eroded_utm.is_empty or eroded_utm.area == 0:
-        print(f"[!] AOI too small for {buffer_m}m inner buffer. Reduce inner_buffer_m.")
+        direction = "inner" if buffer_m > 0 else "outer"
+        print(f"[!] AOI collapsed after {abs(buffer_m)}m {direction} buffer.")
         print(f"    AOI area (UTM): {aoi_utm.area:,.0f} m²")
         return None
 
@@ -150,6 +151,8 @@ def recommend(config, project_root):
     ny = int(round((snap_maxy - snap_miny) / ps))
 
     print(f"\n{'='*55}")
+    direction = "inward" if buffer_m >= 0 else "outward"
+    print(f"  Buffer                 : {abs(buffer_m)} m {direction}")
     print(f"  Pixel size             : {ps} m  (from config)")
     print(f"  Tile divisor           : {target_px} px")
     print(f"  Grid dimensions        : {nx} x {ny} pixels")
@@ -260,5 +263,5 @@ def main(config_file):
 
 if __name__ == "__main__":
     current_dir = Path(__file__).resolve().parent
-    config_path = current_dir.parent / "config" / "00_master_grid.yaml"
+    config_path = current_dir.parent / "config" / "00_base_grid.yaml"
     main(config_file=str(config_path))
