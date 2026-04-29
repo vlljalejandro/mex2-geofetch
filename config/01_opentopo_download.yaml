@@ -23,7 +23,7 @@ auth:
 # output_base : Root folder where the downloaded DEM will be saved.
 #               The file will be named:  <demtype>_subset.<output_format>
 paths:
-  aoi: "aoi/saudi_shield_only.zip"
+  aoi: "aoi/saudi_area.zip"
   output_base: "data/01_raw_data/dem30m"
 
 

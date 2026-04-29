@@ -1,0 +1,92 @@
+# =============================================================================
+# Raster Alignment (Snap to Master Grid) Configuration
+# =============================================================================
+# Used by 03_snap_raster.py / 03_snap_raster_batch.py
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+paths:
+  master_grid: "data/00_base_grid/magnetic_base_grid180m.tif"
+  output_dir:  "data/03_snap_data/nearest"
+
+
+# -----------------------------------------------------------------------------
+# Input Files
+# -----------------------------------------------------------------------------
+# Two options — use ONE of the following:
+#
+# Option A — glob: scan a folder for files matching a pattern.
+#   dir     : folder to scan (relative to project root or absolute)
+#   pattern : glob pattern — overridden per-pattern in batch mode
+#
+# Option B — files: explicit list of file paths.
+#
+inputs:
+  glob:
+    dir:     "data/01_raw_data/raw_magnetic_200m/___tif"
+    pattern: "*_MAG_AMF.tif"   # used only when running 03_snap_raster.py directly
+
+
+  # files:
+  #   - "data/00_raw_dem/tile_a.tif"
+  #   - "data/00_raw_dem/tile_b.tif"
+
+
+# -----------------------------------------------------------------------------
+# Batch
+# -----------------------------------------------------------------------------
+# Patterns to process when running 03_snap_raster_batch.py.
+# Each pattern is matched against inputs.glob.dir.
+# The output filename is auto-built as:
+#   snapped_{resample_alg}_{SUFFIX}
+# where SUFFIX is the pattern with the leading *_ and trailing .tif removed.
+# e.g.  *_MAG_AMF.tif  →  snapped_bilinear_MAG_AMF
+#
+batch:
+  patterns:
+    # - "*_DTM.tif"
+    # - "*_MAG_AMF.tif"
+    # - "*_MAG_AMF_ANS.tif"
+    # - "*_MAG_AMF_RTP.tif"
+    # - "*_MAG_AMF_RTP1VD.tif"
+    # - "*_MAG_AMF_RTP2VD.tif"
+    # - "*_MAG_AMF_RTPHG.tif"
+    # - "*_MAG_AMF_RTPTILT.tif"
+    # - "*_MAG_HGLAT.tif"
+    # - "*_MAG_HGLONG.tif"
+    - "*_RTP.tif"
+    - "*_RTP_ANSIG.tif"
+    - "*_RTP_FVD.tif"
+    - "*_TMI.tif"
+
+
+
+# -----------------------------------------------------------------------------
+# Processing
+# -----------------------------------------------------------------------------
+processing:
+  resample_alg:     "nearest"
+  apply_mask:       true
+  merge_output:     true
+  overlap_strategy: "first"      # first | last | average
+  output_name:      "snapped_nearest_MAG_AMF_ANS"   # used only in single-run mode
+  strip_height:     64000
+
+
+# -----------------------------------------------------------------------------
+# Output Format
+# -----------------------------------------------------------------------------
+output_format:
+  bigtiff:    "IF_SAFER"
+  compress:   "LZW"
+  predictor:  2
+  block_size: 512
+
+
+# -----------------------------------------------------------------------------
+# Running
+# -----------------------------------------------------------------------------
+# Single pattern : python scripts/03_snap_raster.py
+# All patterns   : python scripts/03_snap_raster_batch.py
