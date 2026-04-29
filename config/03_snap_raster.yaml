@@ -1,34 +1,33 @@
 # =============================================================================
 # Raster Alignment (Snap to Master Grid) Configuration
 # =============================================================================
-# Used by align_raster.py to reproject and snap one or more rasters to a
+# Used by 03_snap_raster.py to reproject and snap one or more rasters to a
 # master reference grid, then optionally apply the master as a binary mask.
 #
-# Mask behavior (auto-detected from master grid values):
-#   - Master grid all 1s  → masking skipped (grid defines extent only)
-#   - Master grid has 0s  → pixels where master == 0 are set to NaN
+# Two operating modes
+# -------------------
+# per-file (merge_output: false)
+#   Each input raster is independently warped to the master grid and saved
+#   as a separate file: snapped_<original_name>.tif
 #
-# This means the same script works for both:
-#   (a) A plain extent grid (all 1s) from create_master_grid.py
-#   (b) A custom mask grid with 0s burned in for exclusion zones
+# merge (merge_output: true)
+#   All input rasters are mosaicked onto the master grid and saved as a
+#   single output file, with configurable overlap handling.  Reprojections
+#   are minimised: first/last strategies use exactly 1 Warp call total;
+#   average uses 1 Warp call per input (the merge itself is lossless).
 #
-# Usage:
-#   python align_raster.py
+# Mask behaviour (auto-detected from master grid values)
+#   Master grid all 1s  → masking skipped (grid defines extent only)
+#   Master grid has 0s  → pixels where master == 0 are set to NaN
 # =============================================================================
 
 
 # -----------------------------------------------------------------------------
 # Paths
 # -----------------------------------------------------------------------------
-# master_grid : Path to the master reference GeoTIFF (output of create_master_grid.py
-#               or any GeoTIFF with 0/1 values defining the target grid).
-#               Relative paths resolved from project root.
-#
-# output_dir  : Folder where aligned GeoTIFFs will be saved.
-#               Output files are named: snapped_<original_filename>.tif
 paths:
-  master_grid: "data/00_base_grid/magnetic_base_grid180m.tif"
-  output_dir:  "data/03_snap_data/snap_magnetic_200mcubicspline"
+  master_grid: "data/00_base_grid/magnetic_base_grid30m.tif"
+  output_dir:  "data/01_raw_data/raw_gravity/dg"
 
 
 # -----------------------------------------------------------------------------
@@ -38,78 +37,88 @@ paths:
 #
 # Option A — glob: scan a folder for files matching a pattern.
 #   dir     : folder to scan (relative to project root or absolute)
-#   pattern : glob pattern, e.g. "*.tif", "mosaic_B*.tif", "emit_B*.tif"
+#   pattern : glob pattern, e.g. "*.tif", "mosaic_B*.tif"
 #
 # Option B — files: explicit list of file paths.
-#   Each path can be relative (to project root) or absolute.
 #
-# Examples:
-#   inputs:
-#     glob:
-#       dir: "outputs_mosaic/landsat"
-#       pattern: "mosaic_B*.tif"
-#
-#   inputs:
-#     files:
-#       - "outputs_mosaic/landsat/mosaic_B2.tif"
-#       - "outputs_mosaic/landsat/mosaic_B3.tif"
 inputs:
   glob:
-    dir: 'data/02_mosaic_data/01_mosaic'
+    dir:     "data/01_raw_data/raw_copglo_dem30m"
     pattern: "*.tif"
 
+
+  # files:
+  #   - "data/00_raw_dem/tile_a.tif"
+  #   - "data/00_raw_dem/tile_b.tif"
 
 
 # -----------------------------------------------------------------------------
 # Processing
 # -----------------------------------------------------------------------------
-# resample_alg : Resampling algorithm used when warping the INPUT raster.
-#                The master mask is never resampled — always applied as-is.
+# resample_alg : Resampling algorithm applied when warping INPUT rasters.
+#                The master mask is never resampled.
 #
-#                Options:
-#                  nearest      — preserves original values; best for scientific
-#                                 analysis and categorical data        [default]
-#                  bilinear     — smooth interpolation; good for visualization
-#                  cubic        — sharper than bilinear; slight overshoot risk
-#                  cubicspline  — very smooth; good for DEMs
-#                  lanczos      — highest quality downsampling; slow
-#                  average      — mean of contributing pixels; good for downscaling
-#                  mode         — most frequent value; best for categorical data
-#                  max / min    — max or min of contributing pixels
-#                  med          — median of contributing pixels
+#                nearest      — preserves exact values; best for categorical
+#                               data and scientific integrity        [default]
+#                bilinear     — smooth 2x2 interpolation; good for vis
+#                cubic        — 4x4 kernel; sharper but slight overshoot
+#                cubicspline  — very smooth; recommended for DEMs
+#                lanczos      — highest quality downsampling; slow
+#                average      — mean of contributing source pixels
+#                mode         — most frequent value; categorical data
+#                max / min    — statistical extremes of source pixels
+#                med          — median of source pixels
 #
 # apply_mask   : Whether to apply the master grid as a binary mask.
 #                  true  — pixels where master == 0 are set to NaN
 #                  false — no masking; output covers full master extent
+#
+# merge_output : When true, all input files are merged into a single output
+#                raster on the master grid instead of writing one file per input.
+#                  false — per-file mode (default; backwards-compatible)
+#                  true  — merge mode
+#
+# overlap_strategy : How to resolve pixels where input tiles overlap.
+#                    Only used when merge_output: true.
+#
+#                  first   — the first file in the list wins wherever tiles
+#                            overlap.  Uses a VRT + single Warp (fastest;
+#                            1 reprojection total).           [default]
+#
+#                  last    — the last file in the list wins.  Internally
+#                            the file order is reversed before building
+#                            the VRT, then a single Warp is applied.
+#                            Same cost as 'first'.
+#
+#                  average — each input is warped to an in-memory grid,
+#                            then a NaN-aware mean is computed across the
+#                            stack.  Seams between tiles blend smoothly.
+#                            Recommended for DEMs and continuous surfaces.
+#                            Cost: 1 reprojection per input file.
+#
+# output_name  : Filename for the merged output.
+#                Only used when merge_output: true.
+#
 processing:
-  resample_alg: "cubicspline"
-  apply_mask: true
+  resample_alg:     "cubicspline"
+  apply_mask:       true
+  merge_output:     true
+  overlap_strategy: "first"      # first | last | average
+  output_name:      "snapped_cubicspline_dem30m.tif"
+  # strip_height controls how many rows are processed at a time in average mode.
+  # Lower = less RAM but more warp calls; higher = faster but more RAM.
+  # At 30m resolution, 1024 rows ≈ 30 km per strip. Default: 1024.
+  strip_height:     64000
 
 
 # -----------------------------------------------------------------------------
 # Output Format
 # -----------------------------------------------------------------------------
-# Controls GeoTIFF creation options passed to GDAL.
-#
-# bigtiff    : Whether to write a BigTIFF (64-bit) instead of classic TIFF.
-#                YES       — always write BigTIFF
-#                NO        — always write classic TIFF (4 GB limit)
-#                IF_SAFER  — auto-upgrade to BigTIFF only when output
-#                            would exceed 4 GB; keeps smaller files
-#                            compatible with older tools      [default]
-#
-# compress   : Compression codec.
-#                LZW      — fast, lossless, wide support        [default]
-#                DEFLATE  — better ratio than LZW for float data;
-#                           pair with predictor: 2
-#                NONE     — no compression; fastest write speed
-#
-# predictor  : Delta filter applied before compression (integers only).
-#   (DEFLATE   1 — no predictor                               [default]
-#    only)      2 — horizontal differencing; best for Float32/DEMs
-#
-# block_size : Internal tile size in pixels (must be a power of 2).
-#              256 is a good default; use 512 for very large rasters.
+# bigtiff    : YES | NO | IF_SAFER (auto-upgrade if > 4 GB)    [IF_SAFER]
+# compress   : LZW | DEFLATE | NONE                             [LZW]
+# predictor  : 1 (none) | 2 (horizontal diff, Float32/DEMs)    [2]
+#              Only used with DEFLATE compression.
+# block_size : Internal tile size in pixels (power of 2).       [512]
 output_format:
   bigtiff:    "IF_SAFER"
   compress:   "LZW"
@@ -118,6 +127,6 @@ output_format:
 
 
 # -----------------------------------------------------------------------------
-# Running Code
+# Running
 # -----------------------------------------------------------------------------
 # python scripts/03_snap_raster.py

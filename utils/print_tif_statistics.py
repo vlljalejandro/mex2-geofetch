@@ -3,8 +3,8 @@ import numpy as np
 from osgeo import gdal
 
 # ── Configure here ──────────────────────────────────────────────
-folder = "data/03_snap_data/cubicspline_interpolated"
-# folder = snap_magnetic_nearest
+folder = "dem"
+zero_is_null = True  # Set True for binary masks where 0 = null, 1 = data
 # ────────────────────────────────────────────────────────────────
 
 gdal.UseExceptions()
@@ -31,16 +31,22 @@ else:
 
         arr = band.ReadAsArray().astype(np.float64)
 
-        # # Null pixels are NaN only
-        # null_mask = np.isnan(arr)
+        null_mask = np.isnan(arr)
 
-        # Several null targets
-        target_nulls = [0]  # List all values considered as null
-        null_mask = np.isin(arr, target_nulls) | np.isnan(arr)
+        if nodata is not None and not np.isnan(nodata):
+            null_mask |= (arr == nodata)
+
+        if zero_is_null:
+            null_mask |= (arr == 0)
+
+        # Extra domain-specific null values
+        extra_nulls = []  # e.g. [-9999, -32768]
+        if extra_nulls:
+            null_mask |= np.isin(arr, extra_nulls)
 
         nulls = int(null_mask.sum())
         valid = int(arr.size - nulls)
         print(f"{fname:<40} {rows:>8} {cols:>8} {valid:>12,} {nulls:>12,}")
 
 # Running code:
-# python utils/print_tif_statistics.py
+# python print_tif_statistics.py
