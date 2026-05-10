@@ -230,5 +230,5 @@ def run_batch(config_file: str) -> None:
 
 if __name__ == "__main__":
     current_dir = Path(__file__).resolve().parent
-    config_path = current_dir.parent / "config" / "03_snap_raster_batch.yaml"
+    config_path = current_dir.parent / "config" / "snap_raster_batch.yaml"
     run_batch(config_file=str(config_path))
