@@ -8,8 +8,8 @@
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "data/00_base_grid/magnetic_base_grid180m.tif"
-  output_dir:  "data/03_snap_data/nearest"
+  master_grid: "data/00_base_grid/msr_inference_grid180m.tif"
+  output_dir:  "data/03_snap_data/cubicspline"
 
 
 # -----------------------------------------------------------------------------
@@ -25,7 +25,7 @@ paths:
 #
 inputs:
   glob:
-    dir:     "data/01_raw_data/raw_magnetic_200m/___tif"
+    dir:     "data/01_raw_data/raw_mag200m/tif"
     pattern: "*_MAG_AMF.tif"   # used only when running 03_snap_raster.py directly
 
 
@@ -67,7 +67,7 @@ batch:
 # Processing
 # -----------------------------------------------------------------------------
 processing:
-  resample_alg:     "nearest"
+  resample_alg:     "cubicspline"
   apply_mask:       true
   merge_output:     true
   overlap_strategy: "first"      # first | last | average
@@ -88,5 +88,4 @@ output_format:
 # -----------------------------------------------------------------------------
 # Running
 # -----------------------------------------------------------------------------
-# Single pattern : python scripts/03_snap_raster.py
-# All patterns   : python scripts/03_snap_raster_batch.py
+# All patterns   : python scripts/snap_raster_batch.py

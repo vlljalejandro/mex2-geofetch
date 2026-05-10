@@ -26,8 +26,8 @@
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "data/00_base_grid/magnetic_base_grid30m.tif"
-  output_dir:  "data/01_raw_data/raw_gravity/dg"
+  master_grid: "data/00_base_grid/maaden_base_grid30m.tif"
+  output_dir:  "data/03_snap_data/snap_raster_output"
 
 
 # -----------------------------------------------------------------------------
@@ -43,7 +43,7 @@ paths:
 #
 inputs:
   glob:
-    dir:     "data/01_raw_data/raw_copglo_dem30m"
+    dir:     "data/02_mosaic_data/mosaic_landsat_refl30m"
     pattern: "*.tif"
 
 
@@ -100,14 +100,14 @@ inputs:
 #                Only used when merge_output: true.
 #
 processing:
-  resample_alg:     "cubicspline"
+  resample_alg:     "bilinear"
   apply_mask:       true
-  merge_output:     true
-  overlap_strategy: "first"      # first | last | average
-  output_name:      "snapped_cubicspline_dem30m.tif"
+  merge_output:     false
+  overlap_strategy: "first"      # first | last | average  # Only used if merge_output: true
+  output_name:      "snapped_cubicspline_dem30m.tif"       # Only used if merge_output: true
   # strip_height controls how many rows are processed at a time in average mode.
   # Lower = less RAM but more warp calls; higher = faster but more RAM.
-  # At 30m resolution, 1024 rows ≈ 30 km per strip. Default: 1024.
+  # At 30m resolution, 1024 rows ≈ 30 km per strip. Default: 1024.ckl
   strip_height:     64000
 
 

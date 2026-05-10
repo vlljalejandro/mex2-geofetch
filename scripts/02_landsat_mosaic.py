@@ -242,14 +242,9 @@ def select_best_landsat_scenes(input_dir):
 
 
 def extract_landsat_band(scene, band_number, temp_path):
-    """
-    Applies Landsat C2 L2 reflectance scaling to a raw band TIF and writes
-    a float32 GeoTIFF. Fill pixels (DN == 0) are set to NaN.
-    """
     scene_dir = scene["dir"]
     meta      = scene["meta"]
 
-    # FIX #5: try both uppercase and lowercase extensions for cross-platform compatibility
     band_files = (
         list(scene_dir.glob(f"*_B{band_number}.TIF")) or
         list(scene_dir.glob(f"*_b{band_number}.TIF")) or
@@ -266,7 +261,24 @@ def extract_landsat_band(scene, band_number, temp_path):
         profile = src.profile.copy()
         data    = src.read(1).astype(np.float32)
 
-    fill_mask       = (data == 0)
+    # === FILL MASK FROM QA_PIXEL (BIT 0) ===
+    # Landsat C2 L2: bit 0 of QA_PIXEL is the Fill flag — the only reliable
+    # way to identify fill pixels. DN==0 is NOT a safe proxy because valid
+    # low-reflectance pixels can legitimately have DN=0 after SR scaling.
+    qa_files = (
+        list(scene_dir.glob("*_QA_PIXEL.TIF")) or
+        list(scene_dir.glob("*_QA_PIXEL.tif"))
+    )
+    if qa_files:
+        with rasterio.open(qa_files[0]) as qa_src:
+            qa_data = qa_src.read(1)
+        fill_mask = (qa_data & 1).astype(bool)
+    else:
+        # Fallback if QA band is missing — less accurate but keeps pipeline running
+        print(f"[!] QA_PIXEL not found in {scene_dir.name} — falling back to DN==0 fill detection.")
+        fill_mask = (data == 0)
+    # ========================================
+
     data            = (data * mult) + add
     data[fill_mask] = np.nan
 
