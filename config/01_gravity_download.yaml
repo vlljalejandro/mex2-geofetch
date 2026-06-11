@@ -1,0 +1,60 @@
+# =============================================================================
+# Global Marine Gravity bulk grid download — Scripps TOPEX
+# Source : https://topex.ucsd.edu/pub/global_grav_1min/
+# Dataset: Sandwell et al. V33.1 (released Jan 2026) — 1 arc-minute global grids
+#
+# Each .nc file is a global 1-minute (~1.85 km at equator) NetCDF grid in
+# geographic coordinates (EPSG:4326) — ready for rasterio / xarray / GDAL.
+# The .img counterparts are the original spherical-Mercator binary grids and
+# need GMT's img2grd (or PyGMT) to reproject before use.
+#
+# Citation: Sandwell, D. T., R. D. Muller, W. H. F. Smith, E. Garcia, R. Francis,
+#   "New global marine gravity model from CryoSat-2 and Jason-1 reveals buried
+#    tectonic structure", Science, Vol. 346, no. 6205, pp. 65-67, 2014.
+#   doi:10.1126/science.1258213
+# =============================================================================
+
+paths:
+  # Output base directory (project-relative or absolute)
+  output_base: data/raw
+
+sensors:
+  marine_gravity:
+    base_url: https://topex.ucsd.edu/pub/global_grav_1min
+    output_folder: sandwell_gravity_v33_1
+
+    # Files to download. NetCDF (.nc) is georeferenced and ready for rasterio /
+    # xarray. IMG is spherical-Mercator binary — needs img2grd / PyGMT to
+    # reproject before use in a geographic raster stack.
+    #
+    # File sizes shown are current as of V33.1 (Jan 2026):
+    files:
+      - README_V33.txt             #   7 KB — documentation, read this first
+
+      # --- Primary products (geographic NetCDF) ---
+      - grav_33.1.nc               # 599 MB — free-air gravity anomaly (mGal)
+      - grav_error_33.1.nc         # 196 MB — companion uncertainty grid (mGal)
+      - curv_33.1.nc               # 640 MB — vertical gravity gradient (Eotvos)
+
+      # --- Optional: deflections of the vertical (geoid slopes) ---
+      # Uncomment if you need them for higher-order processing.
+      # - east_33.1.nc             # 592 MB — east deflection of the vertical
+      # - north_33.1.nc            # 583 MB — north deflection of the vertical
+
+      # --- Optional: mean sea surface (from previous V32 release) ---
+      # - mss_sio_32.1.nc          # 307 MB — MSS, only updated through V32
+
+      # --- Optional: Mercator IMG originals ---
+      # Only enable if you specifically need the IMG format for GMT workflows.
+      # Each is ~712 MB.
+      # - grav_33.1.img
+      # - grav_error_33.1.img
+      # - curv_33.1.img
+      # - east_33.1.img
+      # - north_33.1.img
+
+    # Per-request HTTP timeout in seconds. Files are large so keep high.
+    timeout_seconds: 600
+
+    # Retry attempts per file on failure (exponential backoff + Range resume).
+    retries: 3

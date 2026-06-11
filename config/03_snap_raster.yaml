@@ -1,132 +1,138 @@
 # =============================================================================
 # Raster Alignment (Snap to Master Grid) Configuration
 # =============================================================================
-# Used by 03_snap_raster.py to reproject and snap one or more rasters to a
-# master reference grid, then optionally apply the master as a binary mask.
+# Used by 03_snap_raster.py to:
+#   1. Reproject rasters to a master reference grid
+#   2. Snap rasters to the exact grid alignment
+#   3. Optionally apply the master grid as a binary mask
 #
-# Two operating modes
-# -------------------
-# per-file (merge_output: false)
-#   Each input raster is independently warped to the master grid and saved
-#   as a separate file: snapped_<original_name>.tif
+# -----------------------------------------------------------------------------
+# Operating Modes
+# -----------------------------------------------------------------------------
+# Per-file mode (merge_output: false)
+#   - Each raster is processed independently
+#   - Output: snapped_<original_name>.tif
 #
-# merge (merge_output: true)
-#   All input rasters are mosaicked onto the master grid and saved as a
-#   single output file, with configurable overlap handling.  Reprojections
-#   are minimised: first/last strategies use exactly 1 Warp call total;
-#   average uses 1 Warp call per input (the merge itself is lossless).
+# Merge mode (merge_output: true)
+#   - All rasters are mosaicked into a single raster
+#   - Overlap handling controlled by overlap_strategy
 #
-# Mask behaviour (auto-detected from master grid values)
-#   Master grid all 1s  → masking skipped (grid defines extent only)
-#   Master grid has 0s  → pixels where master == 0 are set to NaN
+# -----------------------------------------------------------------------------
+# Mask Behaviour
+# -----------------------------------------------------------------------------
+# Master grid contains only 1s:
+#   → Masking is skipped (grid defines extent only)
+#
+# Master grid contains 0s:
+#   → Pixels where master == 0 are set to NaN
 # =============================================================================
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Paths
-# -----------------------------------------------------------------------------
+# =============================================================================
 paths:
-  master_grid: "data/00_base_grid/maaden_base_grid30m.tif"
+  master_grid: "data/00_base_grid/maaden_base_grid90m.tif"
   output_dir:  "data/03_snap_data/snap_raster_output"
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Input Files
-# -----------------------------------------------------------------------------
-# Two options — use ONE of the following:
+# =============================================================================
+# Use ONLY ONE input method:
 #
-# Option A — glob: scan a folder for files matching a pattern.
-#   dir     : folder to scan (relative to project root or absolute)
-#   pattern : glob pattern, e.g. "*.tif", "mosaic_B*.tif"
+# Option A — glob
+#   Scan a directory using a glob pattern
 #
-# Option B — files: explicit list of file paths.
-#
+# Option B — files
+#   Explicit list of files
+# =============================================================================
 inputs:
+
+  # ---------------------------------------------------------------------------
+  # Option A — Glob Input
+  # ---------------------------------------------------------------------------
   glob:
-    dir:     "data/02_mosaic_data/mosaic_landsat_refl30m"
+    dir:     "data/01_raw_data/gravity"
     pattern: "*.tif"
 
 
+  # ---------------------------------------------------------------------------
+  # Option B — Explicit File List
+  # ---------------------------------------------------------------------------
   # files:
   #   - "data/00_raw_dem/tile_a.tif"
   #   - "data/00_raw_dem/tile_b.tif"
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Processing
-# -----------------------------------------------------------------------------
-# resample_alg : Resampling algorithm applied when warping INPUT rasters.
-#                The master mask is never resampled.
+# =============================================================================
+# resample_alg:
+#   nearest      → categorical/scientific integrity              [default]
+#   bilinear     → smooth interpolation for continuous rasters
+#   cubic        → sharper interpolation
+#   cubicspline  → very smooth, recommended for DEMs
+#   lanczos      → high-quality downsampling
+#   average      → mean of contributing pixels
+#   mode         → most frequent value
+#   max / min    → statistical extremes
+#   med          → median value
 #
-#                nearest      — preserves exact values; best for categorical
-#                               data and scientific integrity        [default]
-#                bilinear     — smooth 2x2 interpolation; good for vis
-#                cubic        — 4x4 kernel; sharper but slight overshoot
-#                cubicspline  — very smooth; recommended for DEMs
-#                lanczos      — highest quality downsampling; slow
-#                average      — mean of contributing source pixels
-#                mode         — most frequent value; categorical data
-#                max / min    — statistical extremes of source pixels
-#                med          — median of source pixels
+# apply_mask:
+#   true  → set pixels where master == 0 to NaN
+#   false → keep full extent
 #
-# apply_mask   : Whether to apply the master grid as a binary mask.
-#                  true  — pixels where master == 0 are set to NaN
-#                  false — no masking; output covers full master extent
+# merge_output:
+#   false → process each file separately
+#   true  → merge all inputs into one raster
 #
-# merge_output : When true, all input files are merged into a single output
-#                raster on the master grid instead of writing one file per input.
-#                  false — per-file mode (default; backwards-compatible)
-#                  true  — merge mode
+# overlap_strategy (used only if merge_output: true):
+#   first   → first raster wins in overlaps          [fastest]
+#   last    → last raster wins
+#   average → NaN-aware mean blending across overlaps
 #
-# overlap_strategy : How to resolve pixels where input tiles overlap.
-#                    Only used when merge_output: true.
-#
-#                  first   — the first file in the list wins wherever tiles
-#                            overlap.  Uses a VRT + single Warp (fastest;
-#                            1 reprojection total).           [default]
-#
-#                  last    — the last file in the list wins.  Internally
-#                            the file order is reversed before building
-#                            the VRT, then a single Warp is applied.
-#                            Same cost as 'first'.
-#
-#                  average — each input is warped to an in-memory grid,
-#                            then a NaN-aware mean is computed across the
-#                            stack.  Seams between tiles blend smoothly.
-#                            Recommended for DEMs and continuous surfaces.
-#                            Cost: 1 reprojection per input file.
-#
-# output_name  : Filename for the merged output.
-#                Only used when merge_output: true.
-#
+# strip_height:
+#   Controls chunk size for average mode.
+#   Lower  → lower RAM usage
+#   Higher → faster processing
+# =============================================================================
 processing:
-  resample_alg:     "bilinear"
-  apply_mask:       true
-  merge_output:     false
-  overlap_strategy: "first"      # first | last | average  # Only used if merge_output: true
-  output_name:      "snapped_cubicspline_dem30m.tif"       # Only used if merge_output: true
-  # strip_height controls how many rows are processed at a time in average mode.
-  # Lower = less RAM but more warp calls; higher = faster but more RAM.
-  # At 30m resolution, 1024 rows ≈ 30 km per strip. Default: 1024.ckl
-  strip_height:     64000
+  resample_alg: "bilinear"
+  apply_mask: true
+
+  merge_output: false
+  overlap_strategy: "first"        # first | last | average
+  output_name: "snapped_cubicspline_gravity.tif"
+
+  strip_height: 64000
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Output Format
-# -----------------------------------------------------------------------------
-# bigtiff    : YES | NO | IF_SAFER (auto-upgrade if > 4 GB)    [IF_SAFER]
-# compress   : LZW | DEFLATE | NONE                             [LZW]
-# predictor  : 1 (none) | 2 (horizontal diff, Float32/DEMs)    [2]
-#              Only used with DEFLATE compression.
-# block_size : Internal tile size in pixels (power of 2).       [512]
+# =============================================================================
+# bigtiff:
+#   YES | NO | IF_SAFER
+#
+# compress:
+#   LZW | DEFLATE | NONE
+#
+# predictor:
+#   1 → none
+#   2 → horizontal differencing (recommended for Float32/DEM)
+#
+# block_size:
+#   Internal tile size in pixels
+# =============================================================================
 output_format:
-  bigtiff:    "IF_SAFER"
-  compress:   "LZW"
-  predictor:  2
+  bigtiff: "IF_SAFER"
+  compress: "LZW"
+  predictor: 2
   block_size: 512
 
 
-# -----------------------------------------------------------------------------
-# Running
-# -----------------------------------------------------------------------------
+# =============================================================================
+# Run Command
+# =============================================================================
 # python scripts/03_snap_raster.py
+

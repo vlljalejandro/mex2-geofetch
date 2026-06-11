@@ -1,0 +1,71 @@
+# Configuration for 01_eigen6c4_bouguer.py
+# ─────────────────────────────────────────
+# Computes Bouguer anomaly from the EIGEN-6C4 spherical harmonic model
+# using pyshtools — no API, no web form, runs entirely offline.
+#
+# The EIGEN-6C4.gfc file (~90 MB) is downloaded automatically on first run
+# and cached at the path set in eigen6c4_params.gfc_path below.
+# If auto-download fails, get it manually from:
+#   https://icgem.gfz.de/home  →  Table of Models  →  EIGEN-6C4  →  gfc
+#
+# Model info:
+#   EIGEN-6C4  –  degree/order 2190  –  GFZ Potsdam + GRGS Toulouse (2014)
+#   Reference: Förste et al. (2014), doi:10.5880/icgem.2015.1
+#
+# Resolution guide (lmax_expand):
+#   360  →  ~55 km  (fast,   regional overview)
+#   720  →  ~28 km  (medium, good for most studies)
+#   1080 →  ~18 km  (slow,   high detail)
+#   Note: full degree 2190 (~9 km) requires large RAM and several hours.
+
+# -----------------------------------------------------------------------------
+# Parameters
+# -----------------------------------------------------------------------------
+
+paths:
+  # Path to your AOI file (GeoPackage, Shapefile, GeoJSON …).
+  # Relative paths are resolved from the project root (two levels above config/).
+  aoi: aoi/dem.zip
+
+  # Root folder for all EIGEN-6C4 output.
+  # Sub-folders created automatically:
+  #   mosaic/  – final GeoTIFFs (one per functional)
+  output_base: data/eigen6c4
+
+eigen6c4_params:
+  # Path to the manually downloaded EIGEN-6C4.gfc file.
+  # Relative paths are resolved from the project root.
+  gfc_path: data/eigen6c4/EIGEN-6C4.gfc
+
+  # Maximum spherical harmonic degree to use for expansion.
+  # See resolution guide in the header above.
+  lmax_expand: 720
+
+  # Available functionals to compute:
+  #   gravity_anomaly_bg  – Simple Bouguer anomaly   (mGal)
+  #   gravity_anomaly     – Free-air anomaly          (mGal)
+  #   gravity             – Total gravity             (mGal)
+  functionals:
+    - gravity_anomaly_bg
+    # - gravity_anomaly
+    # - gravity
+
+  # Assumed crustal density for Bouguer plate correction [g/cm³].
+  # Only used when 'gravity_anomaly_bg' is requested.
+  density: 2.67
+
+  # Path to a DEM GeoTIFF (metres, any CRS) for the Bouguer correction.
+  # Only needed when 'gravity_anomaly_bg' is requested.
+  # Relative paths are resolved from the project root.
+  dem_path: data/dem/srtm_mosaic.tif
+
+  # Output grid resolution in degrees. Determines how finely the
+  # spherical harmonic grid is sampled after expansion.
+  # Should not be finer than the natural resolution of lmax_expand:
+  #   lmax 360 → 0.5°,  lmax 720 → 0.25°,  lmax 1080 → 0.17°
+  grid_step: 0.01
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/01_eigen6c4_bouguer.py

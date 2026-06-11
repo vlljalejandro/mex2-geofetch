@@ -1,0 +1,62 @@
+# =============================================================================
+# Regional gravity GeoTIFF extraction
+# Reads the global Sandwell V33.1 NetCDF grids downloaded by 02_gravity_download
+# and clips them to an AOI shapefile, writing one compressed GeoTIFF per grid.
+#
+# Output GeoTIFFs preserve the source CRS (EPSG:4326) and native 1-arc-minute
+# resolution. Use a separate snap_raster step if you need UTM reprojection or
+# alignment to another raster grid.
+# =============================================================================
+
+paths:
+  # AOI shapefile (project-relative or absolute). Zipped shapefiles supported.
+  aoi: aoi/saudi_arabia_country.zip
+
+  # Directory where the global .nc files were downloaded (matches
+  # `output_base/output_folder` from 02_gravity_download.yaml).
+  source_base: data/01_raw_data/raw_sandwell_gravity_v33_1
+
+  # Output base directory for the clipped GeoTIFFs.
+  output_base: data/processed
+
+extraction:
+  output_folder: sandwell_gravity_v33_1_aoi
+
+  # ---- Grids to clip ----
+  # Each entry: input NetCDF filename, output GeoTIFF name, optional subdataset.
+  # For Sandwell GMT-style NetCDFs the main variable is auto-detected; leave
+  # `subdataset` as null unless rasterio reports multiple subdatasets.
+  inputs:
+    - file: grav_33.1.nc
+      output_name: grav_33_1_aoi.tif
+      subdataset: null
+
+    - file: grav_error_33.1.nc
+      output_name: grav_error_33_1_aoi.tif
+      subdataset: null
+
+    - file: curv_33.1.nc
+      output_name: curv_33_1_aoi.tif
+      subdataset: null
+
+    # Uncomment if you also downloaded the deflections of the vertical:
+    # - file: east_33.1.nc
+    #   output_name: east_33_1_aoi.tif
+    #   subdataset: null
+    # - file: north_33.1.nc
+    #   output_name: north_33_1_aoi.tif
+    #   subdataset: null
+
+  # ---- Output GeoTIFF options ----
+  compression: LZW       # LZW | DEFLATE | ZSTD | NONE
+  bigtiff: IF_SAFER      # YES | NO | IF_NEEDED | IF_SAFER
+
+  # Re-clip even if the output already exists
+  overwrite: false
+
+  # Override the source nodata value in the output (null = inherit from source)
+  nodata: null
+
+  # If true, every pixel touched by the AOI boundary is kept (more inclusive at
+  # the edge). False = only pixel centres inside the polygon are kept.
+  all_touched: false
