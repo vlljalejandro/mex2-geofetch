@@ -16,7 +16,7 @@
 
 paths:
   # Output base directory (project-relative or absolute)
-  output_base: data/raw
+  output_base: data/01_raw_data/raw_sandwell_gravity
 
 sensors:
   marine_gravity:
@@ -58,3 +58,8 @@ sensors:
 
     # Retry attempts per file on failure (exponential backoff + Range resume).
     retries: 3
+
+# =============================================================================
+# Run Command
+# =============================================================================
+# python scripts/01_gravity_download.py
