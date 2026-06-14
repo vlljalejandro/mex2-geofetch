@@ -22,8 +22,8 @@
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "data/00_base_grid/ml_base_grid30m.tif"
-  output_nc:   "data/04_cube_data/emitl2a_hyper60m.nc"
+  master_grid: "data/00_base_grid/maaden_base_grid30m.tif"
+  output_nc:   "data/04_cube_data/landsat_refl30m.nc"
 
 
 # -----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ variable:
   apply_mask: true
   input:
     glob:
-      dir:     "data/03_snap_data/snap_emitl2a_hyper60m"
+      dir:     "data/03_snap_data/landsat_refl30m"
       pattern: "*.tif"
 
 # DEM example (single file → stored as (y, x), no wasted bands):
@@ -77,12 +77,15 @@ processing:
 # -----------------------------------------------------------------------------
 metadata:
   project:      "Maaden Project"
-  sensor:       "Refl: EMIT L2A Hyper60m"
-  resolution:   "60m"
+  sensor:       "Sentinel-2 MSI"
+  product:      "Surface Reflectance L2A"
+  resolution:   "10m"
   crs:          "UTM Zone 37N / WGS-84"
-  created_by:   ""
+  created_by:   "M[EX]2"
   nodata_value: "NaN"
-  units:        "reflectivity (unitless)[0,1]"
+  units:        "surface reflectance (unitless) [0, 1]"
+  bands:        "B1 (Coastal, 60m→10m), B2 (Blue), B3 (Green), B4 (Red), B5 (RedEdge-1, 20m→10m), B6 (RedEdge-2, 20m→10m), B7 (RedEdge-3, 20m→10m), B8 (NIR), B8A (RedEdge-4, 20m→10m), B9 (WV, 60m→10m), B10 (Cirrus, 60m→10m), B11 (SWIR-1, 20m→10m), B12 (SWIR-2, 20m→10m)"
+  correction:   "Sen2Cor atmospheric correction; bilinear upsampling for 20m and 60m native bands"
 
 # -----------------------------------------------------------------------------
 # Running Code

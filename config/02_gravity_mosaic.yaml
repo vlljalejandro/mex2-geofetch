@@ -10,14 +10,14 @@
 
 paths:
   # AOI shapefile (project-relative or absolute). Zipped shapefiles supported.
-  aoi: aoi/saudi_arabia_country.zip
+  aoi: aoi/maaden_study_area.zip
 
   # Directory where the global .nc files were downloaded (matches
   # `output_base/output_folder` from 02_gravity_download.yaml).
-  source_base: data/01_raw_data/raw_sandwell_gravity_v33_1
+  source_base: data/01_raw_data/raw_sandwell_gravity
 
   # Output base directory for the clipped GeoTIFFs.
-  output_base: data/processed
+  output_base: data/02_mosaic_data/geophys_coarse90m/gravity
 
 extraction:
   output_folder: sandwell_gravity_v33_1_aoi
@@ -60,3 +60,9 @@ extraction:
   # If true, every pixel touched by the AOI boundary is kept (more inclusive at
   # the edge). False = only pixel centres inside the polygon are kept.
   all_touched: false
+
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/02_gravity_mosaic.py

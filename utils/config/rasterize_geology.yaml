@@ -1,0 +1,56 @@
+# =============================================================================
+# Geological Map Rasterisation — Config
+# Implements method from Section 2.3.4 (Geological Map Rasterisation)
+# =============================================================================
+
+paths:
+  # Input harmonised geology shapefile (project-relative).
+  # Can point to a .shp directly, or to a .zip containing the shapefile
+  # components (.shp/.shx/.dbf/.prj etc). If the .shp inside the zip is
+  # nested in a subfolder, append "!/<subfolder>" to this path.
+  shapefile: data/01_raw_data/raw_harmonized_geology/SGS_250k_maps_harmonized_cleaned.zip
+
+  # 10 m master reference grid — AOI land mask (1 = valid/land, 0 = null/water)
+  master_grid: data/00_base_grid/maaden_base_grid10m.tif
+
+  # Output directory for per-field GeoTIFFs, CSV lookups, and the NetCDF cube
+  output_dir: data/03_snap_data/geol_masks10m
+
+
+crs:
+  project_crs: EPSG:32637
+
+fields:
+  # Harmonised categorical fields, in band order
+  harmonised_fields:
+    - HA_DOMAIN
+    - HA_RFAM
+    - HA_RTYPE
+    - HA_TECTO
+    - HA_AGEBIN
+
+  # Harmonisation confidence field; HA_CONF == 0 -> unclassified (code 0)
+  confidence_field: HA_CONF
+  unclassified_value: 0
+
+rasterisation:
+  # 0 = no-data / unclassified sentinel
+  nodata_code: 0
+  dtype: uint8
+  all_touched: false   # false = center-point rule
+
+gapfill:
+  method: nearest_neighbour   # 2D Euclidean distance transform
+  constrain_to_land_mask: true
+
+output_geotiff:
+  compress: LZW
+  tiled: true
+  blockxsize: 256
+  blockysize: 256
+
+
+# =============================================================================
+# Run Command
+# =============================================================================
+# python utils/rasterize_geology.py

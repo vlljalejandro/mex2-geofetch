@@ -33,7 +33,7 @@
 # =============================================================================
 paths:
   master_grid: "data/00_base_grid/maaden_base_grid90m.tif"
-  output_dir:  "data/03_snap_data/snap_raster_output"
+  output_dir:  "data/03_snap_data/geophys_coarse90m"
 
 
 # =============================================================================
@@ -53,7 +53,7 @@ inputs:
   # Option A — Glob Input
   # ---------------------------------------------------------------------------
   glob:
-    dir:     "data/01_raw_data/gravity"
+    dir:     "data/02_mosaic_data/geophys_coarse90m"
     pattern: "*.tif"
 
 
@@ -99,15 +99,14 @@ inputs:
 # =============================================================================
 processing:
   resample_alg: "bilinear"
-  apply_mask: true
-
-  merge_output: false
-  overlap_strategy: "first"        # first | last | average
-  output_name: "snapped_cubicspline_gravity.tif"
-
   strip_height: 64000
+  apply_mask: true
+  merge_output: false
+  # Only used if merge_output: true
+  overlap_strategy: "first"           # first | last | average
+  output_name: "emitl2a_hyper60m.tif" # Only used if merge_output: true
 
-
+  
 # =============================================================================
 # Output Format
 # =============================================================================
