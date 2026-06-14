@@ -1,0 +1,79 @@
+# =============================================================================
+# Categorical Cube Configuration — Geological Masks
+# =============================================================================
+# Writes geol_masks10m.nc containing 5 uint8 classification variables,
+# each with CF-1.8 flag_values / flag_meanings derived from a lookup CSV.
+#
+# Code 0 = NO_DATA in every layer → written as _FillValue, excluded from
+# flag_values / flag_meanings.
+#
+# Usage:
+#   python 04_cube_categorical.py config/04_cube_geol_masks10m.yaml
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+paths:
+  master_grid: "../data/00_base_grid/maaden_base_grid10m.tif"
+  output_nc:   "../data/04_cube_data/geol_masks10m.nc"
+
+
+# -----------------------------------------------------------------------------
+# Variables
+# -----------------------------------------------------------------------------
+# input  : path to the uint8 classification raster
+# lookup : path to the code,label CSV for this raster
+# -----------------------------------------------------------------------------
+variables:
+
+  domain:
+    input:  "../data/03_snap_data/geol_masks10m/HA_DOMAIN.tif"
+    lookup: "../data/03_snap_data/geol_masks10m/HA_DOMAIN_lookup.csv"
+    long_name: "Harmonised geological domain classification"
+
+  rfam:
+    input:  "../data/03_snap_data/geol_masks10m/HA_RFAM.tif"
+    lookup: "../data/03_snap_data/geol_masks10m/HA_RFAM_lookup.csv"
+    long_name: "Harmonised rock family classification"
+
+  rtype:
+    input:  "../data/03_snap_data/geol_masks10m/HA_RTYPE.tif"
+    lookup: "../data/03_snap_data/geol_masks10m/HA_RTYPE_lookup.csv"
+    long_name: "Harmonised rock type classification"
+
+  tecto:
+    input:  "../data/03_snap_data/geol_masks10m/HA_TECTO.tif"
+    lookup: "../data/03_snap_data/geol_masks10m/HA_TECTO_lookup.csv"
+    long_name: "Harmonised tectonic setting classification"
+
+  agebin:
+    input:  "../data/03_snap_data/geol_masks10m/HA_AGEBIN.tif"
+    lookup: "../data/03_snap_data/geol_masks10m/HA_AGEBIN_lookup.csv"
+    long_name: "Harmonised age bin classification"
+
+
+# -----------------------------------------------------------------------------
+# Processing
+# -----------------------------------------------------------------------------
+processing:
+  compress_level: 4
+
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  project:      "Maaden Project"
+  resolution:   "10m"
+  crs:          "UTM Zone 37N / WGS-84"
+  created_by:   "M[EX]2"
+  nodata_value: "0 (NO_DATA, written as _FillValue)"
+  source:       "Rasterised from harmonised vector polygons with distance-transform gap fill"
+
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/04_cube_categorical.py config/04_cube_geol_masks10m.yaml

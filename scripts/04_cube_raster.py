@@ -105,11 +105,12 @@ def load_tif_bands(tif_path, expected_shape):
 
 def resolve_input_files(input_cfg, project_root):
     """
-    Resolve a list of input file Paths from the variable's 'input' config block.
+    Resolve a list of input file Paths from a variable's 'input' config block.
 
-    Supports two modes:
-      file : single explicit file path
-      glob : dir + pattern scan
+    Supports three modes:
+      file  : single explicit file path
+      files : explicit list of file paths, in order
+      glob  : dir + pattern scan (sorted alphabetically)
     """
     def resolve(raw):
         p = Path(raw)
@@ -118,11 +119,16 @@ def resolve_input_files(input_cfg, project_root):
     if 'file' in input_cfg:
         return [resolve(input_cfg['file'])]
 
+    if 'files' in input_cfg:
+        return [resolve(f) for f in input_cfg['files']]
+
     if 'glob' in input_cfg:
         base = resolve(input_cfg['glob']['dir'])
         return sorted(base.glob(input_cfg['glob']['pattern']))
 
-    raise ValueError(f"Unrecognised input mode in config. Use 'file' or 'glob'.")
+    raise ValueError(
+        "Unrecognised input mode in config. Use 'file', 'files', or 'glob'."
+    )
 
 
 # =============================================================================
@@ -199,14 +205,51 @@ def stack_variable(var_name, input_paths, expected_shape, mask):
 
 
 # =============================================================================
+# Resolve the set of variable configs (single- or multi-variable)
+# =============================================================================
+
+def resolve_variable_configs(config):
+    """
+    Return a dict {var_name: var_cfg} regardless of whether the config
+    uses the legacy single-variable 'variable' block or the new
+    multi-variable 'variables' block.
+
+    Legacy:
+      variable:
+        var_name:   "refl"
+        apply_mask: true
+        input: ...
+
+    New:
+      variables:
+        mag:
+          apply_mask: true
+          input: ...
+        grav:
+          apply_mask: true
+          input: ...
+    """
+    if 'variables' in config:
+        return dict(config['variables'])
+
+    if 'variable' in config:
+        var_cfg = dict(config['variable'])
+        var_name = var_cfg.pop('var_name')
+        return {var_name: var_cfg}
+
+    raise ValueError("Config must contain a 'variable' or 'variables' block.")
+
+
+# =============================================================================
 # Core writer
 # =============================================================================
 
 def build_nc_variable(config_file):
     """
-    Write a single-variable NetCDF4 file from one or more GeoTIFFs.
+    Write a NetCDF4 file containing one or more variables, each built from
+    one or more GeoTIFFs sharing a common master grid.
 
-    Shape is determined automatically:
+    Per variable, shape is determined automatically:
       - One input file, one band  →  (y, x)
       - Everything else           →  (band, y, x)
     """
@@ -229,12 +272,8 @@ def build_nc_variable(config_file):
     if out_path.suffix != ".nc":
         out_path = out_path.with_suffix(".nc")
 
-    # ── Variable config ──────────────────────────────────────────────
-    var_cfg    = config['variable']
-    var_name   = var_cfg['var_name']
-    apply_mask = var_cfg.get('apply_mask', True)
-
-    input_paths = resolve_input_files(var_cfg['input'], project_root)
+    # ── Variable config(s) ───────────────────────────────────────────
+    var_configs = resolve_variable_configs(config)
 
     # ── Processing options ───────────────────────────────────────────
     compress_level = config.get('processing', {}).get('compress_level', 4)
@@ -251,26 +290,50 @@ def build_nc_variable(config_file):
     ref_ds     = None
 
     mask_full = (master_arr == 0) if bool(np.any(master_arr == 0)) else None
-    mask      = mask_full if (apply_mask and mask_full is not None) else None
 
     print(f"[*] Master grid : {master_file.name}  ({cols} x {rows} px, {gt[1]:.1f} m/px)")
-    print(f"[*] Variable    : '{var_name}'  ({len(input_paths)} file(s), mask={apply_mask})")
+    print(f"[*] Variables   : {', '.join(var_configs.keys())}")
 
-    # ── Stack ────────────────────────────────────────────────────────
-    da = stack_variable(var_name, input_paths, (rows, cols), mask)
-    if da is None:
-        print(f"[!] No data loaded for '{var_name}' — aborting.")
+    # ── Build each variable's DataArray ─────────────────────────────
+    data_vars  = {}
+    summary    = []  # (var_name, n_bands, first_label, last_label)
+
+    for var_name, var_cfg in var_configs.items():
+        apply_mask  = var_cfg.get('apply_mask', True)
+        mask        = mask_full if (apply_mask and mask_full is not None) else None
+        input_paths = resolve_input_files(var_cfg['input'], project_root)
+
+        print(f"\n[*] Variable    : '{var_name}'  ({len(input_paths)} file(s), mask={apply_mask})")
+
+        da = stack_variable(var_name, input_paths, (rows, cols), mask)
+        if da is None:
+            print(f"[!] No data loaded for '{var_name}' — skipping.")
+            continue
+
+        # Per-variable metadata block, e.g. metadata: { mag: {...}, grav: {...} }
+        var_attrs = config.get('metadata', {}).get(var_name, {})
+        if var_attrs:
+            da.attrs.update(var_attrs)
+
+        shape_str = (
+            f"(y={rows}, x={cols})"
+            if da.ndim == 2
+            else f"(band={da.sizes['band']}, y={rows}, x={cols})"
+        )
+        print(f"     → shape : {shape_str}")
+
+        data_vars[var_name] = da
+
+        labels = da.attrs.get("band_labels", "").split(", ")
+        n_bands = 1 if da.ndim == 2 else da.sizes['band']
+        summary.append((var_name, n_bands, labels[0], labels[-1]))
+
+    if not data_vars:
+        print("[!] No variables loaded — aborting.")
         return
 
-    shape_str = (
-        f"(y={rows}, x={cols})"
-        if da.ndim == 2
-        else f"(band={da.sizes['band']}, y={rows}, x={cols})"
-    )
-    print(f"     → shape : {shape_str}")
-
     # ── Build Dataset ────────────────────────────────────────────────
-    ds = xr.Dataset({var_name: da}, coords={"y": ys, "x": xs})
+    ds = xr.Dataset(data_vars, coords={"y": ys, "x": xs})
 
     ds = ds.assign_coords(spatial_ref=0)
     ds["spatial_ref"].attrs.update({
@@ -287,8 +350,14 @@ def build_nc_variable(config_file):
         "x_min":        float(gt[0]),
         "y_max":        float(gt[3]),
     })
-    if extra_attrs:
-        ds.attrs.update(extra_attrs)
+
+    # Top-level / shared metadata (anything in 'metadata' that isn't a
+    # per-variable block matching a variable name)
+    shared_attrs = {
+        k: v for k, v in extra_attrs.items() if k not in var_configs
+    }
+    if shared_attrs:
+        ds.attrs.update(shared_attrs)
 
     ds["x"].attrs.update({"units": "metre", "axis": "X", "long_name": "Easting"})
     ds["y"].attrs.update({"units": "metre", "axis": "Y", "long_name": "Northing"})
@@ -302,21 +371,21 @@ def build_nc_variable(config_file):
             "shuffle":    True,
             "_FillValue": np.nan,
         }
+        for var_name in data_vars
     }
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if out_path.exists():
         out_path.unlink()
-        print(f"  [*] Removed existing: {out_path.name}")
+        print(f"\n[*] Removed existing: {out_path.name}")
 
     print(f"[*] Writing → {out_path}")
     ds.to_netcdf(str(out_path), format="NETCDF4", encoding=encoding)
 
     file_size = out_path.stat().st_size
-    labels    = da.attrs.get("band_labels", "").split(", ")
-    n_bands   = 1 if da.ndim == 2 else da.sizes['band']
-    print(f"\n[✓] Done.  {n_bands} band(s) [{labels[0]} → {labels[-1]}]"
-          f"  |  {file_size / 1e6:.1f} MB  |  {out_path}")
+    print(f"\n[✓] Done.  {file_size / 1e6:.1f} MB  |  {out_path}")
+    for var_name, n_bands, first_label, last_label in summary:
+        print(f"     - {var_name}: {n_bands} band(s) [{first_label} → {last_label}]")
 
 
 # =============================================================================
