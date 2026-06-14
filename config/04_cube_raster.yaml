@@ -108,4 +108,4 @@ metadata:
 # -----------------------------------------------------------------------------
 # Running Code
 # -----------------------------------------------------------------------------
-# python scripts/04_cube_raster.py config/04_cube_geophys_coarse90m.yaml
+# python scripts/04_cube_raster.py
