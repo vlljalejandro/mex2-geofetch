@@ -1,19 +1,17 @@
 # =============================================================================
-# NetCDF4 Variable Writer Configuration
+# NetCDF4 Multi-Variable Cube Writer Configuration
 # =============================================================================
-# Writes a single-variable NetCDF4 file from one or more GeoTIFFs.
-# Output shape is determined automatically from the input:
+# Writes a NetCDF4 file containing one or more variables, each built from
+# one or more GeoTIFFs sharing a common master grid.
+#
+# Per-variable output shape is determined automatically from the input:
 #
 #   input: single file (1 band)   →  variable stored as (y, x)
 #   input: single file (N bands)  →  variable stored as (band, y, x)
-#   input: list of files          →  variable stored as (band, y, x)
-#
-# Run once per variable. Pass a different config each time:
-#   python build_nc_cube.py config/04_cube_refl.yaml
-#   python build_nc_cube.py config/04_cube_dem.yaml
+#   input: list/glob of files     →  variable stored as (band, y, x)
 #
 # Usage:
-#   python build_nc_cube.py [config_path]
+#   python 04_cube_raster.py [config_path]
 #   (defaults to config/04_cube_raster.yaml)
 # =============================================================================
 
@@ -22,43 +20,45 @@
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "data/00_base_grid/maaden_base_grid30m.tif"
-  output_nc:   "data/04_cube_data/landsat_refl30m.nc"
+  master_grid: "data/00_base_grid/maaden_base_grid90m.tif"
+  output_nc:   "data/04_cube_data/geophys_coarse90m.nc"
 
 
 # -----------------------------------------------------------------------------
-# Variable
+# Variables
 # -----------------------------------------------------------------------------
-# var_name   : name of the variable inside the .nc file
+# Each key under 'variables' becomes a variable inside the .nc file.
+#
 # apply_mask : true (default) — pixels where master == 0 are set to NaN
-#              false          — no masking applied
+#              false           — no masking applied
 #
 # input — one of:
-#
-#   Single file:
-#     input: "path/to/file.tif"
-#
-#   List of files  →  one band per file, stacked in order:
-#     input:
-#       - "path/to/band1.tif"
-#       - "path/to/band2.tif"
-#       - "path/to/band3.tif"
-# --------------------------------------------------------------------------
+#   file  : "path/to/file.tif"               (single file)
+#   files :                                    (explicit ordered list)
+#     - "path/to/band1.tif"
+#     - "path/to/band2.tif"
+#   glob  :                                    (dir + pattern, sorted)
+#     dir:     "path/to/dir"
+#     pattern: "*.tif"
+# -----------------------------------------------------------------------------
+variables:
 
-variable:
-  var_name:   "refl"
-  apply_mask: true
-  input:
-    glob:
-      dir:     "data/03_snap_data/landsat_refl30m"
-      pattern: "*.tif"
+  mag:
+    apply_mask: true
+    input:
+      files:
+        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_TMI.tif"
+        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_RTP.tif"
+        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_RTP_FVD.tif"
+        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_RTP_ANSIG.tif"
 
-# DEM example (single file → stored as (y, x), no wasted bands):
-#
-# variable:
-#   var_name:   "dem"
-#   apply_mask: true
-#   input: "data/03_snap_data/snap_copglo_dem30m/copglo_snapped_dem30m.tif"
+  grav:
+    apply_mask: true
+    input:
+      files:
+        - "data/03_snap_data/geophys_coarse90m/snapped_GRAV_FAA.tif"
+        - "data/03_snap_data/geophys_coarse90m/snapped_GRAV_FAA-ERR.tif"
+        - "data/03_snap_data/geophys_coarse90m/snapped_GRAV_VGG.tif"
 
 
 # -----------------------------------------------------------------------------
@@ -73,21 +73,39 @@ processing:
 
 
 # -----------------------------------------------------------------------------
-# Metadata  (written as global attributes)
+# Metadata
+# -----------------------------------------------------------------------------
+# Top-level keys not matching a variable name → written as global attributes.
+# Keys matching a variable name (e.g. 'mag', 'grav') → written as attributes
+# on that specific variable.
 # -----------------------------------------------------------------------------
 metadata:
   project:      "Maaden Project"
-  sensor:       "Sentinel-2 MSI"
-  product:      "Surface Reflectance L2A"
-  resolution:   "10m"
+  resolution:   "90m"
   crs:          "UTM Zone 37N / WGS-84"
   created_by:   "M[EX]2"
   nodata_value: "NaN"
-  units:        "surface reflectance (unitless) [0, 1]"
-  bands:        "B1 (Coastal, 60m→10m), B2 (Blue), B3 (Green), B4 (Red), B5 (RedEdge-1, 20m→10m), B6 (RedEdge-2, 20m→10m), B7 (RedEdge-3, 20m→10m), B8 (NIR), B8A (RedEdge-4, 20m→10m), B9 (WV, 60m→10m), B10 (Cirrus, 60m→10m), B11 (SWIR-1, 20m→10m), B12 (SWIR-2, 20m→10m)"
-  correction:   "Sen2Cor atmospheric correction; bilinear upsampling for 20m and 60m native bands"
+
+  mag:
+    sensor:       "Legacy Aeromagnetic Survey"
+    product:      "Reduced-to-Pole Magnetic Field Derivatives"
+    units:        "nT (TMI, RTP); nT/m (RTP-FVD); dimensionless (RTP-ANSIG)"
+    bands:        "TMI, RTP, RTP-FVD, RTP-ANSIG"
+    band_descriptions: "TMI=Total Magnetic Intensity; RTP=Reduced-to-Pole; RTP-FVD=RTP First Vertical Derivative; RTP-ANSIG=RTP Analytic Signal"
+    native_resolution: "200m native, resampled"
+    correction:   "Levelling, IGRF, and variable-inclination RTP applied"
+
+  grav:
+    sensor:       "Satellite Altimetry Gravity"
+    product:      "Free-Air Gravity Anomaly and Vertical Gravity Gradient"
+    units:        "mGal (FAA, FAA-ERR); Eotvos (VGG)"
+    bands:        "FAA, FAA-ERR, VGG"
+    band_descriptions: "FAA=Free-Air Anomaly; FAA-ERR=Free-Air Anomaly Error; VGG=Vertical Gravity Gradient"
+    native_resolution: "1.85km native, resampled"
+    correction:   "Derived from satellite altimetry inversion"
+
 
 # -----------------------------------------------------------------------------
 # Running Code
 # -----------------------------------------------------------------------------
-# python scripts/04_cube_raster.py
+# python scripts/04_cube_raster.py config/04_cube_geophys_coarse90m.yaml
