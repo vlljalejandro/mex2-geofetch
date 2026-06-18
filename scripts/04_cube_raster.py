@@ -135,7 +135,7 @@ def resolve_input_files(input_cfg, project_root):
 # Stack input files into a DataArray
 # =============================================================================
 
-def stack_variable(var_name, input_paths, expected_shape, mask):
+def stack_variable(var_name, input_paths, expected_shape, mask, shared_band_dim=True):
     """
     Load one or more GeoTIFFs and return a DataArray.
 
@@ -145,10 +145,15 @@ def stack_variable(var_name, input_paths, expected_shape, mask):
 
     Parameters
     ----------
-    var_name      : Variable name.
-    input_paths   : List of Path objects.
-    expected_shape: (rows, cols) for shape validation.
-    mask          : Boolean 2-D array (True = mask out) or None.
+    var_name        : Variable name.
+    input_paths     : List of Path objects.
+    expected_shape  : (rows, cols) for shape validation.
+    mask            : Boolean 2-D array (True = mask out) or None.
+    shared_band_dim : If True (single-variable dataset), the band dimension
+                       is named "band". If False (multi-variable dataset),
+                       it is named "{var_name}_band" so that variables with
+                       different band counts don't get outer-joined by
+                       xarray when combined into one Dataset.
 
     Returns
     -------
@@ -193,10 +198,11 @@ def stack_variable(var_name, input_paths, expected_shape, mask):
             attrs={"band_labels": all_band_labels[0]},
         )
     else:
+        band_dim = "band" if shared_band_dim else f"{var_name}_band"
         da = xr.DataArray(
             data,
-            dims=["band", "y", "x"],
-            coords={"band": np.arange(1, n_bands + 1, dtype=np.int32)},
+            dims=[band_dim, "y", "x"],
+            coords={band_dim: np.arange(1, n_bands + 1, dtype=np.int32)},
             name=var_name,
             attrs={"band_labels": ", ".join(all_band_labels)},
         )
@@ -294,6 +300,10 @@ def build_nc_variable(config_file):
     print(f"[*] Master grid : {master_file.name}  ({cols} x {rows} px, {gt[1]:.1f} m/px)")
     print(f"[*] Variables   : {', '.join(var_configs.keys())}")
 
+    # Multiple variables → each gets its own "{var_name}_band" dimension,
+    # so differing band counts don't get outer-joined by xarray.
+    shared_band_dim = len(var_configs) == 1
+
     # ── Build each variable's DataArray ─────────────────────────────
     data_vars  = {}
     summary    = []  # (var_name, n_bands, first_label, last_label)
@@ -305,7 +315,7 @@ def build_nc_variable(config_file):
 
         print(f"\n[*] Variable    : '{var_name}'  ({len(input_paths)} file(s), mask={apply_mask})")
 
-        da = stack_variable(var_name, input_paths, (rows, cols), mask)
+        da = stack_variable(var_name, input_paths, (rows, cols), mask, shared_band_dim)
         if da is None:
             print(f"[!] No data loaded for '{var_name}' — skipping.")
             continue
@@ -315,17 +325,18 @@ def build_nc_variable(config_file):
         if var_attrs:
             da.attrs.update(var_attrs)
 
+        band_dim = "band" if shared_band_dim else f"{var_name}_band"
         shape_str = (
             f"(y={rows}, x={cols})"
             if da.ndim == 2
-            else f"(band={da.sizes['band']}, y={rows}, x={cols})"
+            else f"({band_dim}={da.sizes[band_dim]}, y={rows}, x={cols})"
         )
         print(f"     → shape : {shape_str}")
 
         data_vars[var_name] = da
 
         labels = da.attrs.get("band_labels", "").split(", ")
-        n_bands = 1 if da.ndim == 2 else da.sizes['band']
+        n_bands = 1 if da.ndim == 2 else da.sizes[band_dim]
         summary.append((var_name, n_bands, labels[0], labels[-1]))
 
     if not data_vars:
