@@ -19,11 +19,11 @@ import contextily.plotting as cx_plot
 # =============================================================================
 # Config
 # =============================================================================
-NC_PATH    = Path("04_cube_data/aeromag_hr60m.nc")
+NC_PATH    = Path("data/04_cube_data/aeromag_hr60m.nc")
 OUT_PATH   = Path("figures/aeromag_hr60m_magnetic_rtp.png")
 
 VAR_NAME   = "aeromag"
-BAND_LABEL = "RTP"          # which band to extract, matched against band_labels attr
+BAND_LABEL = "RTP_SR"          # which band to extract, matched against band_labels attr
 
 DPI            = 300
 FIGSIZE        = (10, 10)
