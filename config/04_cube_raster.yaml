@@ -20,8 +20,8 @@
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "data/00_base_grid/maaden_base_grid90m.tif"
-  output_nc:   "data/04_cube_data/geophys_coarse90m.nc"
+  master_grid: "data/00_base_grid/maaden_base_grid60m.tif"
+  output_nc:   "data/04_cube_data/aeromag_hr60m.nc"
 
 
 # -----------------------------------------------------------------------------
@@ -43,22 +43,21 @@ paths:
 # -----------------------------------------------------------------------------
 variables:
 
-  mag:
+  aeromag:
     apply_mask: true
     input:
       files:
-        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_TMI.tif"
-        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_RTP.tif"
-        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_RTP_FVD.tif"
-        - "data/03_snap_data/geophys_coarse90m/snapped_MAG_RTP_ANSIG.tif"
-
-  grav:
-    apply_mask: true
-    input:
-      files:
-        - "data/03_snap_data/geophys_coarse90m/snapped_GRAV_FAA.tif"
-        - "data/03_snap_data/geophys_coarse90m/snapped_GRAV_FAA-ERR.tif"
-        - "data/03_snap_data/geophys_coarse90m/snapped_GRAV_VGG.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTP.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTP1VD.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTP2VD.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTPTILT.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTPHG.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_ANS.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_HGLAT.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_HGLONG.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_DTM.tif"
+      - "data/03_snap_data/aeromag_hr60m/inferred_MAG_AMF_RTP.tif"
 
 
 # -----------------------------------------------------------------------------
@@ -81,12 +80,12 @@ processing:
 # -----------------------------------------------------------------------------
 metadata:
   project:      "Maaden Project"
-  resolution:   "90m"
+  resolution:   "60m"
   crs:          "UTM Zone 37N / WGS-84"
   created_by:   "M[EX]2"
   nodata_value: "NaN"
 
-  mag:
+  aeromag:
     sensor:       "Legacy Aeromagnetic Survey"
     product:      "Reduced-to-Pole Magnetic Field Derivatives"
     units:        "nT (TMI, RTP); nT/m (RTP-FVD); dimensionless (RTP-ANSIG)"
