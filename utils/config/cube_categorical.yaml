@@ -76,4 +76,4 @@ metadata:
 # -----------------------------------------------------------------------------
 # Running Code
 # -----------------------------------------------------------------------------
-# python scripts/04_cube_categorical.py config/04_cube_geol_masks10m.yaml
+# python  utils/cube_categorical.py utils/config/cube_categorical.yaml

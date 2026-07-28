@@ -57,7 +57,7 @@ variables:
       - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_HGLAT.tif"
       - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_HGLONG.tif"
       - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_DTM.tif"
-      - "data/03_snap_data/aeromag_hr60m/inferred_MAG_AMF_RTP.tif"
+      - "data/03_snap_data/aeromag_hr60m/inferred_MAG_AMF_RTPSR.tif"
 
 
 # -----------------------------------------------------------------------------
@@ -86,22 +86,17 @@ metadata:
   nodata_value: "NaN"
 
   aeromag:
-    sensor:       "Legacy Aeromagnetic Survey"
-    product:      "Reduced-to-Pole Magnetic Field Derivatives"
-    units:        "nT (TMI, RTP); nT/m (RTP-FVD); dimensionless (RTP-ANSIG)"
-    bands:        "TMI, RTP, RTP-FVD, RTP-ANSIG"
-    band_descriptions: "TMI=Total Magnetic Intensity; RTP=Reduced-to-Pole; RTP-FVD=RTP First Vertical Derivative; RTP-ANSIG=RTP Analytic Signal"
-    native_resolution: "200m native, resampled"
-    correction:   "Levelling, IGRF, and variable-inclination RTP applied"
-
-  grav:
-    sensor:       "Satellite Altimetry Gravity"
-    product:      "Free-Air Gravity Anomaly and Vertical Gravity Gradient"
-    units:        "mGal (FAA, FAA-ERR); Eotvos (VGG)"
-    bands:        "FAA, FAA-ERR, VGG"
-    band_descriptions: "FAA=Free-Air Anomaly; FAA-ERR=Free-Air Anomaly Error; VGG=Vertical Gravity Gradient"
-    native_resolution: "1.85km native, resampled"
-    correction:   "Derived from satellite altimetry inversion"
+    project:      "Maaden Project"
+    sensor:       "High-Resolution Aeromagnetic Survey"
+    product:      "Magnetic Field Derivatives"
+    resolution:   "60m"
+    crs:          "UTM Zone 37N / WGS-84"
+    created_by:   "M[EX]2"
+    nodata_value: "NaN"
+    units:        "varies by band (see band_descriptions)"
+    bands:        "AMF, RTP, RTP1VD, RTP2VD, RTPTILT, RTPHG, ANS, HGLAT, HGLONG, DTM, RTP_SR"
+    band_descriptions: "AMF=Analytic Signal of Magnetic Field; RTP=Reduced-to-Pole; RTP1VD/RTP2VD=RTP 1st/2nd Vertical Derivative; RTPTILT=RTP Tilt Angle; RTPHG=RTP Horizontal Gradient; ANS=Analytic Signal; HGLAT/HGLONG=Horizontal Gradient Latitude/Longitude components; DTM=Distance to Magnetic Source; RTP_SR=Super-resolution RTP infilling survey coverage gaps via learned spatial inference"
+    correction:   "Aircraft compensation, lag correction, diurnal removal, tie-line levelling, micro-levelling, IGRF correction applied"
 
 
 # -----------------------------------------------------------------------------

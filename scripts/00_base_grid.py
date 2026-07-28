@@ -5,7 +5,7 @@ from pyproj import CRS
 from shapely.ops import transform, unary_union
 from shapely.geometry import box
 import pyproj
-from osgeo import gdal, osr
+from osgeo import gdal, osr, ogr
 gdal.UseExceptions()
 from pathlib import Path
 
@@ -103,11 +103,11 @@ def recommend(config, project_root):
     aoi_utm = to_crs(aoi_geom_4326, 4326, utm_epsg)
 
     # -- Erode inward/outward --
-    buffer_m   = config['grid'].get('buffer_m', 1000)   # positive = inward, negative = outward
-    eroded_utm = aoi_utm.buffer(-buffer_m)
+    buffer_m   = config['grid'].get('buffer_m', -1000)   # positive = outward, negative = inward
+    eroded_utm = aoi_utm.buffer(buffer_m)
 
     if eroded_utm.is_empty or eroded_utm.area == 0:
-        direction = "inner" if buffer_m > 0 else "outer"
+        direction = "outward" if buffer_m > 0 else "inward"
         print(f"[!] AOI collapsed after {abs(buffer_m)}m {direction} buffer.")
         print(f"    AOI area (UTM): {aoi_utm.area:,.0f} m²")
         return None
@@ -151,7 +151,7 @@ def recommend(config, project_root):
     ny = int(round((snap_maxy - snap_miny) / ps))
 
     print(f"\n{'='*55}")
-    direction = "inward" if buffer_m >= 0 else "outward"
+    direction = "outward" if buffer_m >= 0 else "inward"
     print(f"  Buffer                 : {abs(buffer_m)} m {direction}")
     print(f"  Pixel size             : {ps} m  (from config)")
     print(f"  Tile divisor           : {target_px} px")
@@ -175,21 +175,90 @@ def recommend(config, project_root):
     }
 
 
+def rasterize_mask(params, config, project_root):
+    """
+    Rasterizes a shapefile onto the grid defined by `params`: pixels that
+    intersect the shapefile geometry become 1, all others 0.
+
+    Uses `mask.shapefile` from the config if given, otherwise falls back
+    to `paths.aoi` (i.e. mask against the same AOI used to build the grid).
+    Reprojects the shapefile to the grid's UTM CRS before rasterizing, since
+    gdal.RasterizeLayer does not reproject on the fly.
+
+    Returns a uint8 numpy array of shape (ny, nx).
+    """
+    mask_rel  = config.get('mask', {}).get('shapefile') or config['paths']['aoi']
+    mask_file = Path(mask_rel) if Path(mask_rel).is_absolute() else project_root / mask_rel
+
+    if not mask_file.exists():
+        print(f"[!] Mask shapefile missing: {mask_file}")
+        return None
+
+    mask_uri = f"zip://{mask_file.as_posix()}" if mask_file.suffix.lower() == '.zip' else mask_file.as_posix()
+    print(f"[*] Rasterizing mask from: {mask_uri}")
+
+    ps, nx, ny = params['pixel_size'], params['nx'], params['ny']
+    minx, maxy = params['minx'], params['maxy']
+
+    gdf = gpd.read_file(mask_uri, engine='fiona').to_crs(epsg=params['utm_epsg'])
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(params['utm_epsg'])
+
+    # -- Build an in-memory OGR layer from the reprojected geometries --
+    mem_ogr_ds  = ogr.GetDriverByName('MEM').CreateDataSource('mask_mem')
+    mem_layer   = mem_ogr_ds.CreateLayer('mask', srs=srs, geom_type=ogr.wkbMultiPolygon)
+    layer_defn  = mem_layer.GetLayerDefn()
+
+    for geom in gdf.geometry:
+        if geom is None or geom.is_empty:
+            continue
+        feat = ogr.Feature(layer_defn)
+        feat.SetGeometry(ogr.CreateGeometryFromWkb(geom.wkb))
+        mem_layer.CreateFeature(feat)
+        feat = None
+
+    # -- Rasterize onto an in-memory raster matching the grid exactly --
+    mem_raster_ds = gdal.GetDriverByName('MEM').Create('', nx, ny, 1, gdal.GDT_Byte)
+    mem_raster_ds.SetGeoTransform((minx, ps, 0, maxy, 0, -ps))
+    mem_raster_ds.SetProjection(srs.ExportToWkt())
+
+    gdal.RasterizeLayer(mem_raster_ds, [1], mem_layer, burn_values=[1], options=['ALL_TOUCHED=TRUE'])
+
+    mask_array = mem_raster_ds.GetRasterBand(1).ReadAsArray()
+
+    n_valid = int(mask_array.sum())
+    pct = 100 * n_valid / (nx * ny)
+    print(f"[*] Mask coverage: {n_valid:,} / {nx*ny:,} px ({pct:.1f}%)")
+
+    mem_raster_ds = None
+    mem_ogr_ds    = None
+
+    return mask_array
+
+
 # =============================================================================
 # Step 2 — Create master grid
 # =============================================================================
 
 def create_grid(params, config, project_root):
     """
-    Creates a GeoTIFF master grid populated entirely with 1s (uint8),
-    using the parameters confirmed in Step 1.
+    Creates a GeoTIFF master grid using the parameters confirmed in Step 1.
 
-    The grid:
-      - Is in the auto-detected UTM CRS
-      - Has exactly nx * ny pixels, both divisible by 256
-      - Is filled with 1 (valid) — downstream align_raster.py reads
-        0 as masked and 1 as valid, so this grid marks the full extent
-        as valid with no interior masking.
+    Two modes, controlled by `mask.from_shapefile` in the config:
+      - False (default) : grid is filled entirely with 1 (valid), i.e.
+        the full extent is marked valid with no interior masking.
+      - True  : grid is rasterized from a shapefile (`mask.shapefile`,
+        falling back to `paths.aoi`) — 1 where the shapefile intersects
+        the pixel, 0 elsewhere.
+
+    In both cases the grid:
+      - Is in the auto-detected/override UTM CRS
+      - Has exactly nx * ny pixels, both divisible by the tile_divisor
+      - Has NO GDAL NoDataValue set — 0 and 1 are both literal, valid
+        pixel values. Downstream code (e.g. align_raster.py) that treats
+        0 as masked should do so explicitly on the pixel values, not by
+        relying on GDAL-level nodata metadata.
     """
     out_rel  = config['paths']['output']
     out_file = Path(out_rel) if Path(out_rel).is_absolute() else project_root / out_rel
@@ -203,6 +272,13 @@ def create_grid(params, config, project_root):
 
     # Geotransform: (top-left x, pixel width, 0, top-left y, 0, -pixel height)
     geotransform = (minx, ps, 0, maxy, 0, -ps)
+
+    # -- Decide fill mode --
+    use_shapefile_mask = config.get('mask', {}).get('from_shapefile', False)
+    mask_array = rasterize_mask(params, config, project_root) if use_shapefile_mask else None
+
+    if use_shapefile_mask and mask_array is None:
+        print("[!] Falling back to all-valid (1s) grid since mask rasterization failed.")
 
     driver = gdal.GetDriverByName("GTiff")
     ds = driver.Create(
@@ -220,8 +296,13 @@ def create_grid(params, config, project_root):
     ds.SetProjection(srs.ExportToWkt())
 
     band = ds.GetRasterBand(1)
-    band.Fill(1)                # all pixels = 1 (valid)
-    band.SetNoDataValue(0)
+    if mask_array is not None:
+        band.WriteArray(mask_array)     # 1 where shapefile intersects, else 0
+    else:
+        band.Fill(1)                    # all pixels = 1 (valid)
+    # No NoDataValue set: 0 and 1 are both literal, valid data values.
+    # (Downstream code that treats 0 as masked/nodata should do so explicitly
+    # rather than relying on GDAL-level nodata metadata.)
     band.FlushCache()
 
     ds = None
@@ -229,6 +310,7 @@ def create_grid(params, config, project_root):
     print(f"[+] Master grid saved: {out_file}")
     print(f"    EPSG:{params['utm_epsg']} | {nx} x {ny} px | {ps} m/px")
     print(f"    Tile blocks: {nx // 256} x {ny // 256} (256px each)")
+    print(f"    Mode: {'shapefile mask' if mask_array is not None else 'all-valid (1s)'}")
 
 
 # =============================================================================
