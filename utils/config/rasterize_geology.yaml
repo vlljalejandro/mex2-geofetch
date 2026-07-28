@@ -8,13 +8,13 @@ paths:
   # Can point to a .shp directly, or to a .zip containing the shapefile
   # components (.shp/.shx/.dbf/.prj etc). If the .shp inside the zip is
   # nested in a subfolder, append "!/<subfolder>" to this path.
-  shapefile: data/01_raw_data/raw_harmonized_geology/SGS_250k_maps_harmonized_cleaned.zip
+  shapefile: utils/data/maaden_geo250k_harmonized.zip
 
   # 10 m master reference grid — AOI land mask (1 = valid/land, 0 = null/water)
-  master_grid: data/00_base_grid/maaden_base_grid10m.tif
+  master_grid: utils/maaden_base_grid10m.tif
 
   # Output directory for per-field GeoTIFFs, CSV lookups, and the NetCDF cube
-  output_dir: data/03_snap_data/geol_masks10m
+  output_dir: geol_masks10m
 
 
 crs:

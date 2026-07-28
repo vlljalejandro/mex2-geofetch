@@ -26,17 +26,18 @@
 # output : Path for the output master grid GeoTIFF.
 #          File will be created automatically including parent directories.
 paths:
-  aoi: "aoi/sa_shield_only.zip"
-  output: "data/00_base_grid/shield_only.tif"
+  aoi: aoi/shield_basins_area.zip
+  output: "data/00_base_grid/shield_basins_area.tif"
 
 
 # -----------------------------------------------------------------------------
 # Grid Parameters
 # -----------------------------------------------------------------------------
-# inner_buffer_m : Inward erosion of the AOI polygon in metres before the
-#                  grid is fitted. Ensures all grid pixels fall fully inside
-#                  the AOI with a safe margin.
-#                  Default: 1000 (1 km). Reduce if AOI is small.
+# buffer_m : Buffer applied to the AOI polygon in metres before the grid is
+#            fitted.
+#              positive = expand AOI outward
+#              negative = erode AOI inward (safe interior margin)
+#            Default: -1000 (1 km inward). Reduce magnitude if AOI is small.
 #
 # The pixel size is NOT set here — it is computed automatically by the script
 # and confirmed interactively. The script finds the best pixel size from
@@ -46,8 +47,8 @@ paths:
 # The CRS is also automatic — the script detects the UTM zone from the AOI
 # centroid and reprojects accordingly.
 grid:
-  # buffer_m: 1000    # positive = shrink AOI inward (safe interior)
-  buffer_m: -5000  # negative = expand AOI outward
+  buffer_m: 10000   # positive = expand AOI outward
+  # buffer_m: -5000 # negative = erode AOI inward
 
   # pixel_size_m : Target pixel size in metres. This is fixed — the script
   #                finds the nearest nx and ny (number of pixels) that are
@@ -79,6 +80,23 @@ grid:
   #                deep learning frameworks that expect power-of-2 tile grids.
   #                Other valid choices: 128, 512, 1024.
   tile_divisor: 256
+
+
+# -----------------------------------------------------------------------------
+# Mask
+# -----------------------------------------------------------------------------
+# from_shapefile : false (default) — grid is filled entirely with 1 (valid).
+#                  true             — grid is rasterized from a shapefile:
+#                                     pixel = 1 where it intersects the
+#                                     shapefile geometry, 0 elsewhere.
+#
+# shapefile      : Path to the shapefile used for rasterizing the mask.
+#                   Any GeoPandas-readable format (.geojson, .shp, .gpkg, .zip).
+#                   Relative paths resolved from project root (two levels up).
+#                   Set to null to reuse paths.aoi as the mask source.
+mask:
+  from_shapefile: True
+  shapefile: null   # null = use paths.aoi
 
 # -----------------------------------------------------------------------------
 # Running Code
