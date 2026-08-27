@@ -16,6 +16,11 @@ from math import ceil
 # so floating-point bbox arithmetic never accidentally nudges us over.
 OT_AREA_LIMIT_KM2 = 440_000
 
+# Buffer added to every internal tile edge (degrees).
+# 0.003 deg ~ 330 m ~ 11 pixels at 1 arc-second (COP30 / SRTMGL1 / NASADEM).
+# Guarantees neighbouring tiles share pixels so the mosaic has no seams.
+TILE_OVERLAP_DEG = 0.003
+
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -35,12 +40,17 @@ def bbox_area_km2(west: float, south: float, east: float, north: float) -> float
 
 
 def subdivide_bbox(
-    west: float, south: float, east: float, north: float, limit_km2: float
+    west: float, south: float, east: float, north: float,
+    limit_km2: float, overlap_deg: float = TILE_OVERLAP_DEG,
 ) -> list[tuple[float, float, float, float]]:
     """
     Split a bounding box into the smallest regular grid whose individual
     cells each fit under *limit_km2*.  Returns a flat list of
     (west, south, east, north) tuples.
+
+    Every internal edge is buffered outwards by *overlap_deg* so adjacent
+    tiles share pixels and the mosaic has no seams.  The outer perimeter
+    is clamped to the original AOI bounds.
     """
     total_area = bbox_area_km2(west, south, east, north)
     if total_area <= limit_km2:
@@ -51,21 +61,31 @@ def subdivide_bbox(
     n_cols = ceil(np.sqrt(n_cells * (east - west) / max(north - south, 1e-9)))
     n_rows = ceil(n_cells / n_cols)
 
-    lon_edges = np.linspace(west, east, n_cols + 1)
-    lat_edges = np.linspace(south, north, n_rows + 1)
+    # Buffering makes every tile bigger, so a grid that was *just* under the
+    # limit can tip over it. Grow the grid until the buffered tiles all fit.
+    while True:
+        lon_edges = np.linspace(west, east, n_cols + 1)
+        lat_edges = np.linspace(south, north, n_rows + 1)
 
-    tiles = []
-    for i in range(n_rows):
-        for j in range(n_cols):
-            tile = (
-                lon_edges[j],      # west
-                lat_edges[i],      # south
-                lon_edges[j + 1],  # east
-                lat_edges[i + 1],  # north
-            )
-            tiles.append(tile)
+        tiles = []
+        for i in range(n_rows):
+            for j in range(n_cols):
+                tile = (
+                    max(lon_edges[j]     - overlap_deg, west),   # west
+                    max(lat_edges[i]     - overlap_deg, south),  # south
+                    min(lon_edges[j + 1] + overlap_deg, east),   # east
+                    min(lat_edges[i + 1] + overlap_deg, north),  # north
+                )
+                tiles.append(tile)
 
-    return tiles
+        if max(bbox_area_km2(*t) for t in tiles) <= limit_km2:
+            return tiles
+
+        # Refine along whichever axis currently has the longer cells
+        if (east - west) / n_cols >= (north - south) / n_rows:
+            n_cols += 1
+        else:
+            n_rows += 1
 
 
 def download_tile(
