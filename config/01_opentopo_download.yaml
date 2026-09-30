@@ -23,8 +23,8 @@ auth:
 # output_base : Root folder where the downloaded DEM will be saved.
 #               The file will be named:  <demtype>_subset.<output_format>
 paths:
-  aoi: "aoi/shield_basins_area.zip"
-  output_base: "data/01_raw_data_chile/dem30m"
+  aoi: "aoi/study_area_granites.zip"
+  output_base: "data/01_raw_data_granites/dem30m"
 
 
 # -----------------------------------------------------------------------------
