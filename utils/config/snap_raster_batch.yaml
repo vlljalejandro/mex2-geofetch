@@ -1,78 +1,59 @@
 # =============================================================================
-# Raster Alignment (Snap to Master Grid) Configuration
+# Raster Alignment (Snap to Master Grid) — Batch Configuration
 # =============================================================================
-# Used by 03_snap_raster.py / 03_snap_raster_batch.py
+# Used by utils/snap_raster_batch.py
+# All relative paths are resolved against the project root.
 
 
 # -----------------------------------------------------------------------------
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "data/00_base_grid/msr_inference_grid180m.tif"
-  output_dir:  "data/03_snap_data/cubicspline"
-
-
-# -----------------------------------------------------------------------------
-# Input Files
-# -----------------------------------------------------------------------------
-# Two options — use ONE of the following:
-#
-# Option A — glob: scan a folder for files matching a pattern.
-#   dir     : folder to scan (relative to project root or absolute)
-#   pattern : glob pattern — overridden per-pattern in batch mode
-#
-# Option B — files: explicit list of file paths.
-#
-inputs:
-  glob:
-    dir:     "data/01_raw_data/raw_mag200m/tif"
-    pattern: "*_MAG_AMF.tif"   # used only when running 03_snap_raster.py directly
-
-
-  # files:
-  #   - "data/00_raw_dem/tile_a.tif"
-  #   - "data/00_raw_dem/tile_b.tif"
+  master_grid: "data/00_base_grid/maaden_base_grid60m.tif"
+  input_dir:   "data/01_raw_data/raw_magnetic"     # folder searched by each pattern
+  recursive:   true                                # also search all subfolders of input_dir
+  output_dir:  "data/03_snap_data/bilinear"
 
 
 # -----------------------------------------------------------------------------
 # Batch
 # -----------------------------------------------------------------------------
-# Patterns to process when running 03_snap_raster_batch.py.
-# Each pattern is matched against inputs.glob.dir.
+# Each pattern is matched against paths.input_dir (and its subfolders
+# when paths.recursive is true).
 # The output filename is auto-built as:
-#   snapped_{resample_alg}_{SUFFIX}
+#   snapped_{resample_alg}_{SUFFIX}.tif
 # where SUFFIX is the pattern with the leading *_ and trailing .tif removed.
-# e.g.  *_MAG_AMF.tif  →  snapped_bilinear_MAG_AMF
+# e.g.  *_AMF.tif  →  snapped_bilinear_AMF.tif
 #
 batch:
   patterns:
-    # - "*_DTM.tif"
-    # - "*_MAG_AMF.tif"
-    # - "*_MAG_AMF_ANS.tif"
-    # - "*_MAG_AMF_RTP.tif"
-    # - "*_MAG_AMF_RTP1VD.tif"
-    # - "*_MAG_AMF_RTP2VD.tif"
-    # - "*_MAG_AMF_RTPHG.tif"
-    # - "*_MAG_AMF_RTPTILT.tif"
-    # - "*_MAG_HGLAT.tif"
-    # - "*_MAG_HGLONG.tif"
-    - "*_RTP.tif"
-    - "*_RTP_ANSIG.tif"
-    - "*_RTP_FVD.tif"
-    - "*_TMI.tif"
-
+    - "*_DTM.tif"
+    - "*_AMF.tif"
+    - "*_AMF_ANS.tif"
+    - "*_AMF_RTP.tif"
+    - "*_AMF_RTP1VD.tif"
+    - "*_AMF_RTP2VD.tif"
+    - "*_AMF_RTPHG.tif"
+    - "*_AMF_RTPTILT.tif"
+    - "*_HGLAT.tif"
+    - "*_HGLONG.tif"
+    # - "*_RTP.tif"
+    # - "*_RTP_ANSIG.tif"
+    # - "*_RTP_FVD.tif"
+    # - "*_TMI.tif"
 
 
 # -----------------------------------------------------------------------------
 # Processing
 # -----------------------------------------------------------------------------
 processing:
-  resample_alg:     "cubicspline"
+  resample_alg:     "bilinear"
   apply_mask:       true
   merge_output:     true
   overlap_strategy: "first"      # first | last | average
-  output_name:      "snapped_nearest_MAG_AMF_ANS"   # used only in single-run mode
   strip_height:     64000
+  src_nodata:       -9999        # written to input bands that have no NoData declared
+                                 # (header only); set to null to disable
 
 
 # -----------------------------------------------------------------------------
@@ -88,4 +69,4 @@ output_format:
 # -----------------------------------------------------------------------------
 # Running
 # -----------------------------------------------------------------------------
-# All patterns   : python scripts/snap_raster_batch.py
+#   python utils/snap_raster_batch.py

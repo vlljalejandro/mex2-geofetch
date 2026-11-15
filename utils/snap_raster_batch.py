@@ -1,19 +1,27 @@
 """
-03_snap_raster_batch.py
+snap_raster_batch.py
 =======================
 Runs snap/merge for every pattern listed under batch.patterns in the YAML,
 using the same processing and output-format settings for all of them.
 
+Each pattern is matched against paths.input_dir (and its subfolders when
+paths.recursive is true).
+
+Before processing, any input band without a declared NoData value gets
+processing.src_nodata written to its header, so those cells are ignored
+during resampling instead of being treated as real values.
+
 Output name per pattern is auto-built as:
-    snapped_{resample_alg}_{SUFFIX}
+    snapped_{resample_alg}_{SUFFIX}.tif
 where SUFFIX = pattern stripped of its leading '*_' and trailing '.tif'
-    e.g. '*_MAG_AMF_RTP.tif' -> 'snapped_bilinear_MAG_AMF_RTP'
+    e.g. '*_MAG_AMF_RTP.tif' -> 'snapped_bilinear_MAG_AMF_RTP.tif'
 
 Usage
 -----
-    python scripts/03_snap_raster_batch.py
+    python utils/snap_raster_batch.py
 """
 
+import importlib
 import sys
 import time
 import numpy as np
@@ -21,19 +29,15 @@ import yaml
 from osgeo import gdal
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Make sure the script can import from the same directory regardless of how
-# it is launched.
-# ---------------------------------------------------------------------------
-_SCRIPT_DIR = Path(__file__).resolve().parent
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent   # utils/ -> project/
+_SCRIPTS_DIR = _PROJECT_ROOT / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from snap_raster import (          # noqa: E402  (import after path fix)
-    RESAMPLE_ALGORITHMS,
-    align_raster,
-    merge_rasters,
-)
+_snap = importlib.import_module("03_snap_raster")
+RESAMPLE_ALGORITHMS = _snap.RESAMPLE_ALGORITHMS
+align_raster = _snap.align_raster
+merge_rasters = _snap.merge_rasters
 
 gdal.UseExceptions()
 
@@ -75,6 +79,40 @@ def _build_creation_opts(fmt: dict) -> list[str]:
     return opts
 
 
+def _resolve(path_str: str, root: Path) -> Path:
+    """Return path_str as an absolute Path, resolving relative paths against root."""
+    p = Path(path_str)
+    return p if p.is_absolute() else root / p
+
+
+def _ensure_nodata(files: list[Path], nodata: float) -> tuple[int, list[tuple[Path, str]]]:
+    """
+    For every file, set `nodata` on bands that have no NoData declared.
+    Only the header is changed; pixel values are untouched.
+    Bands that already declare a NoData value are left as they are.
+
+    Returns (number of files fixed, list of (file, error) that could not be fixed).
+    """
+    fixed, errors = 0, []
+    for f in files:
+        try:
+            ds = gdal.Open(str(f), gdal.GA_ReadOnly)
+            missing = [b for b in range(1, ds.RasterCount + 1)
+                       if ds.GetRasterBand(b).GetNoDataValue() is None]
+            ds = None
+            if not missing:
+                continue
+
+            ds = gdal.Open(str(f), gdal.GA_Update)
+            for b in missing:
+                ds.GetRasterBand(b).SetNoDataValue(nodata)
+            ds = None   # close / flush header
+            fixed += 1
+        except Exception as exc:
+            errors.append((f, str(exc)))
+    return fixed, errors
+
+
 # =============================================================================
 # Batch runner
 # =============================================================================
@@ -88,34 +126,47 @@ def run_batch(config_file: str) -> None:
     with open(config_path) as fh:
         config = yaml.safe_load(fh)
 
-    project_root = config_path.parent.parent   # config/ lives one level below root
+    # Relative paths in the YAML are resolved against the project root,
+    # independent of where the config file itself lives.
+    project_root = _PROJECT_ROOT
+    paths_cfg    = config["paths"]
 
     # ------------------------------------------------------------------
     # Master grid
     # ------------------------------------------------------------------
-    master_rel  = config["paths"]["master_grid"]
-    master_file = Path(master_rel) if Path(master_rel).is_absolute() else project_root / master_rel
+    master_file = _resolve(paths_cfg["master_grid"], project_root)
     if not master_file.exists():
         print(f"[!] Master grid missing: {master_file}")
         return
 
     # ------------------------------------------------------------------
+    # Input directory (searched by every batch pattern)
+    # ------------------------------------------------------------------
+    input_dir = _resolve(paths_cfg["input_dir"], project_root)
+    if not input_dir.exists():
+        print(f"[!] Input directory not found: {input_dir}")
+        return
+
+    recursive = paths_cfg.get("recursive", True)
+    finder    = input_dir.rglob if recursive else input_dir.glob
+
+    # ------------------------------------------------------------------
     # Output directory
     # ------------------------------------------------------------------
-    out_rel = config["paths"]["output_dir"]
-    out_dir = Path(out_rel) if Path(out_rel).is_absolute() else project_root / out_rel
+    out_dir = _resolve(paths_cfg["output_dir"], project_root)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------
     # Processing settings (shared across all patterns)
     # ------------------------------------------------------------------
-    proc         = config["processing"]
-    alg_name     = proc.get("resample_alg", "nearest").lower()
-    resample     = RESAMPLE_ALGORITHMS.get(alg_name, gdal.GRA_NearestNeighbour)
-    apply_mask   = proc.get("apply_mask",       True)
-    merge_mode   = proc.get("merge_output",     False)
+    proc          = config["processing"]
+    alg_name      = proc.get("resample_alg", "nearest").lower()
+    resample      = RESAMPLE_ALGORITHMS.get(alg_name, gdal.GRA_NearestNeighbour)
+    apply_mask    = proc.get("apply_mask",       True)
+    merge_mode    = proc.get("merge_output",     False)
     overlap_strat = proc.get("overlap_strategy", "first").lower()
     strip_height  = proc.get("strip_height",     1024)
+    src_nodata    = proc.get("src_nodata",       -9999)   # None in YAML disables the fix
 
     if alg_name not in RESAMPLE_ALGORITHMS:
         print(f"[!] Unknown resample_alg '{alg_name}'. Falling back to nearest.")
@@ -124,20 +175,6 @@ def run_batch(config_file: str) -> None:
     # Output format
     # ------------------------------------------------------------------
     creation_opts = _build_creation_opts(config.get("output_format", {}))
-
-    # ------------------------------------------------------------------
-    # Input directory (glob mode only for batch)
-    # ------------------------------------------------------------------
-    glob_cfg = config["inputs"].get("glob")
-    if not glob_cfg:
-        print("[!] Batch mode requires inputs.glob.dir — 'files' list not supported here.")
-        return
-
-    input_dir = Path(glob_cfg["dir"])
-    input_dir = input_dir if input_dir.is_absolute() else project_root / input_dir
-    if not input_dir.exists():
-        print(f"[!] Input directory not found: {input_dir}")
-        return
 
     # ------------------------------------------------------------------
     # Batch patterns
@@ -155,6 +192,8 @@ def run_batch(config_file: str) -> None:
     print(f"  Master     : {master_file.name}")
     print(f"  Resample   : {alg_name}")
     print(f"  Mode       : {'merge → ' + overlap_strat if merge_mode else 'per-file'}")
+    print(f"  Src NoData : {src_nodata if src_nodata is not None else 'not enforced'}")
+    print(f"  Input dir  : {input_dir}{'  (incl. subfolders)' if recursive else ''}")
     print(f"  Output dir : {out_dir}")
     print("=" * 60)
     print()
@@ -165,21 +204,33 @@ def run_batch(config_file: str) -> None:
     for idx, pattern in enumerate(patterns, start=1):
         suffix      = _suffix_from_pattern(pattern)
         output_name = f"snapped_{alg_name}_{suffix}"
-        input_files = sorted(input_dir.glob(pattern))
+        input_files = sorted(finder(pattern))
 
         print(f"[{idx}/{len(patterns)}] Pattern  : {pattern}")
-        print(f"           Output   : {output_name}")
+        print(f"           Output   : {output_name}.tif")
         print(f"           Files    : {len(input_files)} found")
+        for f in input_files:
+            print(f"             - {f.relative_to(input_dir)}")
 
         if not input_files:
             print(f"           [!] No files matched — skipping\n")
             failures.append((pattern, "no files matched"))
             continue
 
+        # --------------------------------------------------------------
+        # Make sure every input declares its NoData value
+        # --------------------------------------------------------------
+        if src_nodata is not None:
+            n_fixed, nd_errors = _ensure_nodata(input_files, float(src_nodata))
+            if n_fixed:
+                print(f"           NoData   : set to {src_nodata} on {n_fixed} file(s)")
+            for f, err in nd_errors:
+                print(f"           [!] Could not set NoData on {f.name}: {err}")
+
         t0 = time.time()
         try:
             if merge_mode:
-                output_path = out_dir / output_name
+                output_path = out_dir / f"{output_name}.tif"
                 merge_rasters(
                     input_files=input_files,
                     reference_path=master_file,
@@ -229,6 +280,5 @@ def run_batch(config_file: str) -> None:
 # =============================================================================
 
 if __name__ == "__main__":
-    current_dir = Path(__file__).resolve().parent
-    config_path = current_dir.parent / "config" / "snap_raster_batch.yaml"
+    config_path = _PROJECT_ROOT / "utils" / "config" / "snap_raster_batch.yaml"
     run_batch(config_file=str(config_path))

@@ -47,17 +47,19 @@ variables:
     apply_mask: true
     input:
       files:
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTP.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTP1VD.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTP2VD.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTPTILT.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_RTPHG.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_AMF_ANS.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_HGLAT.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_MAG_HGLONG.tif"
-      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_DTM.tif"
       - "data/03_snap_data/aeromag_hr60m/inferred_MAG_AMF_RTPSR.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF_ANS.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF_RTP.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF_RTP1VD.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF_RTP2VD.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF_RTPHG.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_AMF_RTPTILT.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_DTM.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_HGLAT.tif"
+      - "data/03_snap_data/aeromag_hr60m/snapped_bilinear_HGLONG.tif"
+
+      
 
 
 # -----------------------------------------------------------------------------
