@@ -323,7 +323,10 @@ def merge_rasters(
         if all_same_crs:
             print("    CRS      : homogeneous — VRT + single Warp")
             vrt_path = "/vsimem/merge_input.vrt"
-            vrt_opts = gdal.BuildVRTOptions(resampleAlg=resample_alg, srcNodata=np.nan)
+            # No srcNodata here: the VRT inherits each tile's own declared
+            # NoData (e.g. -999999), so the Warp below excludes those cells
+            # before resampling instead of blending them into valid data.
+            vrt_opts = gdal.BuildVRTOptions(resampleAlg=resample_alg)
             vrt_ds   = gdal.BuildVRT(vrt_path, [str(f) for f in files], options=vrt_opts)
             if vrt_ds is None:
                 raise RuntimeError("gdal.BuildVRT failed.")

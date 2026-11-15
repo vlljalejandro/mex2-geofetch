@@ -23,7 +23,7 @@ NC_PATH    = Path("data/04_cube_data/aeromag_hr60m.nc")
 OUT_PATH   = Path("figures/aeromag_hr60m_magnetic_rtp.png")
 
 VAR_NAME   = "aeromag"
-BAND_LABEL = "RTP_SR"          # which band to extract, matched against band_labels attr
+BAND_LABEL = "RTP"          # which band to extract, matched against band_labels attr
 
 DPI            = 300
 FIGSIZE        = (10, 10)
@@ -232,7 +232,7 @@ def build_rtp_preview():
     # 7. Cosmetics
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
-    ax.set_title("High-Resolution Aeromagnetic RTP", fontsize=13, fontweight="bold")
+    ax.set_title("High-Resolution Aeromagnetic RTP (New)", fontsize=13, fontweight="bold")
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
