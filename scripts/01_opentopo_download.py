@@ -1,3 +1,4 @@
+import os
 import yaml
 import requests
 import geopandas as gpd
@@ -237,7 +238,7 @@ def download_opentopo_dem(config_file: str) -> None:
 
         success = download_tile(
             base_url      = config["api"]["base_url"],
-            api_key       = config["auth"]["api_key"],
+            api_key       = os.environ.get("OPENTOPO_API_KEY") or config["auth"]["api_key"],
             demtype       = dem_params["demtype"],
             output_format = dem_params["output_format"],
             west          = t_west,

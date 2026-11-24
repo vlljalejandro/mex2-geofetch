@@ -10,8 +10,10 @@
 # After registering, generate your API key at:
 #   https://portal.opentopography.org/myopentopo
 # Free accounts include access to all global DEM datasets listed below.
+# Set the key in the environment variable OPENTOPO_API_KEY (preferred), or
+# paste it below locally. Do not commit a real key.
 auth:
-  api_key: "***REMOVED***"
+  api_key: ""
 
 
 # -----------------------------------------------------------------------------

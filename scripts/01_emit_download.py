@@ -100,8 +100,8 @@ def main(config_file):
     # 3. Authenticate with NASA Earthdata
     print("[*] Authenticating with NASA Earthdata...")
     auth = config.get('auth', {})
-    os.environ["EARTHDATA_USERNAME"] = auth.get('username', '')
-    os.environ["EARTHDATA_PASSWORD"] = auth.get('password', '')
+    os.environ.setdefault("EARTHDATA_USERNAME", auth.get('username', ''))
+    os.environ.setdefault("EARTHDATA_PASSWORD", auth.get('password', ''))
     earthaccess.login(strategy="environment")
 
     # 4. Search dataset
