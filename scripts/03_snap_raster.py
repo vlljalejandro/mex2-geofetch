@@ -526,7 +526,7 @@ def main(config_file):
         f"BLOCKXSIZE={block_size}",
         f"BLOCKYSIZE={block_size}",
     ]
-    if compress == "DEFLATE":
+    if compress in ("DEFLATE", "LZW", "ZSTD"):
         creation_opts.append(f"PREDICTOR={predictor}")
 
     # Collect input files
@@ -552,7 +552,7 @@ def main(config_file):
     print(f"[*] Mode             : {'merge → ' + overlap_strategy if merge_mode else 'per-file'}")
     print(f"[*] BigTIFF          : {bigtiff}")
     print(f"[*] Compress         : {compress}"
-          + (f" (predictor={predictor})" if compress == "DEFLATE" else ""))
+          + (f" (predictor={predictor})" if compress in ("DEFLATE", "LZW", "ZSTD") else ""))
     print(f"[*] Block size       : {block_size} px")
     print(f"[*] Files to process : {len(input_files)}\n")
 

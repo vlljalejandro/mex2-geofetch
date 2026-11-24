@@ -26,8 +26,8 @@ gdal.UseExceptions()
 #       ...
 #
 # Usage:
-#   python 04_cube_categorical.py [config_path]
-#   (defaults to config/04_cube_categorical.yaml)
+#   python utils/cube_categorical.py [config_path]
+#   (defaults to utils/config/cube_categorical.yaml)
 # =============================================================================
 
 
@@ -149,7 +149,7 @@ def build_categorical_cube(config_file):
     """
     config_path  = Path(config_file).resolve()
     config       = load_config(config_path)
-    project_root = config_path.parent.parent
+    project_root = Path(__file__).resolve().parent.parent   # paths are relative to the project root
 
     # ── Paths ────────────────────────────────────────────────────────
     master_file = resolve_path(config['paths']['master_grid'], project_root)

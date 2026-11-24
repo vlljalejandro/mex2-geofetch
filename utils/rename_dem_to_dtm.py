@@ -8,15 +8,15 @@ to *_DTM.tif.
 
 Usage
 -----
-    python utils/rename_dem_to_dtm.py            # dry run: only lists changes
-    python utils/rename_dem_to_dtm.py --apply    # actually renames
+    python utils/rename_dem_to_dtm.py    # APPLY = False: dry run, only lists changes
+                                         # APPLY = True:  renames
 """
 
-import sys
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent   # utils/ -> project/
 INPUT_DIR     = _PROJECT_ROOT / "data" / "01_raw_data" / "raw_magnetic"
+APPLY         = False   # False = dry run
 
 
 def main(apply: bool) -> None:
@@ -48,8 +48,8 @@ def main(apply: bool) -> None:
 
     print(f"\n{'Renamed' if apply else 'Would rename'}: {renamed}  |  Skipped: {skipped}")
     if not apply and renamed:
-        print("Run again with --apply to rename.")
+        print("Set APPLY = True to rename.")
 
 
 if __name__ == "__main__":
-    main(apply="--apply" in sys.argv)
+    main(apply=APPLY)

@@ -116,9 +116,10 @@ processing:
 # compress:
 #   LZW | DEFLATE | NONE
 #
-# predictor:
+# predictor (applied with LZW, DEFLATE and ZSTD):
 #   1 → none
 #   2 → horizontal differencing (recommended for Float32/DEM)
+#   3 → floating-point prediction (Float32 only)
 #
 # block_size:
 #   Internal tile size in pixels

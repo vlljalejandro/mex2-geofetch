@@ -74,7 +74,7 @@ def _build_creation_opts(fmt: dict) -> list[str]:
         f"BLOCKXSIZE={block_size}",
         f"BLOCKYSIZE={block_size}",
     ]
-    if compress == "DEFLATE":
+    if compress in ("DEFLATE", "LZW", "ZSTD"):
         opts.append(f"PREDICTOR={predictor}")
     return opts
 

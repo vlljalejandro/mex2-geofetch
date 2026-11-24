@@ -9,7 +9,7 @@
 #   Step 2 — Script pauses and asks for confirmation in the terminal.
 #   Step 3 — On confirmation, creates a GeoTIFF filled with 1s (valid pixels).
 #
-# The output master grid is used as the reference for align_raster.py:
+# The output master grid is the reference for 03_snap_raster.py and 04_cube_raster.py:
 #   - Pixels with value 1 = valid (kept as-is)
 #   - Pixels with value 0 = masked (set to NaN in aligned outputs)
 #
@@ -27,7 +27,7 @@
 #          File will be created automatically including parent directories.
 paths:
   aoi: aoi/shield_basins_area.zip
-  output: "data/00_base_grid/shield_basins_area.tif"
+  output: "data/00_base_grid/shield_base_grid30m.tif"
 
 
 # -----------------------------------------------------------------------------

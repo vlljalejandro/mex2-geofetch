@@ -16,8 +16,8 @@
 # Paths
 # -----------------------------------------------------------------------------
 paths:
-  master_grid: "../data/00_base_grid/maaden_base_grid10m.tif"
-  output_nc:   "../data/04_cube_data/geol_masks10m.nc"
+  master_grid: "data/00_base_grid/maaden_base_grid10m.tif"
+  output_nc:   "data/04_cube_data/geol_masks10m.nc"
 
 
 # -----------------------------------------------------------------------------
@@ -29,28 +29,28 @@ paths:
 variables:
 
   domain:
-    input:  "../data/03_snap_data/geol_masks10m/HA_DOMAIN.tif"
-    lookup: "../data/03_snap_data/geol_masks10m/HA_DOMAIN_lookup.csv"
+    input:  "data/03_snap_data/geol_masks10m/HA_DOMAIN.tif"
+    lookup: "data/03_snap_data/geol_masks10m/HA_DOMAIN_lookup.csv"
     long_name: "Harmonised geological domain classification"
 
   rfam:
-    input:  "../data/03_snap_data/geol_masks10m/HA_RFAM.tif"
-    lookup: "../data/03_snap_data/geol_masks10m/HA_RFAM_lookup.csv"
+    input:  "data/03_snap_data/geol_masks10m/HA_RFAM.tif"
+    lookup: "data/03_snap_data/geol_masks10m/HA_RFAM_lookup.csv"
     long_name: "Harmonised rock family classification"
 
   rtype:
-    input:  "../data/03_snap_data/geol_masks10m/HA_RTYPE.tif"
-    lookup: "../data/03_snap_data/geol_masks10m/HA_RTYPE_lookup.csv"
+    input:  "data/03_snap_data/geol_masks10m/HA_RTYPE.tif"
+    lookup: "data/03_snap_data/geol_masks10m/HA_RTYPE_lookup.csv"
     long_name: "Harmonised rock type classification"
 
   tecto:
-    input:  "../data/03_snap_data/geol_masks10m/HA_TECTO.tif"
-    lookup: "../data/03_snap_data/geol_masks10m/HA_TECTO_lookup.csv"
+    input:  "data/03_snap_data/geol_masks10m/HA_TECTO.tif"
+    lookup: "data/03_snap_data/geol_masks10m/HA_TECTO_lookup.csv"
     long_name: "Harmonised tectonic setting classification"
 
   agebin:
-    input:  "../data/03_snap_data/geol_masks10m/HA_AGEBIN.tif"
-    lookup: "../data/03_snap_data/geol_masks10m/HA_AGEBIN_lookup.csv"
+    input:  "data/03_snap_data/geol_masks10m/HA_AGEBIN.tif"
+    lookup: "data/03_snap_data/geol_masks10m/HA_AGEBIN_lookup.csv"
     long_name: "Harmonised age bin classification"
 
 

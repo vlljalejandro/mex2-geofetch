@@ -1,22 +1,23 @@
 # Configuration for 01_eigen6c4_bouguer.py
 # ─────────────────────────────────────────
-# Computes Bouguer anomaly from the EIGEN-6C4 spherical harmonic model
-# using pyshtools — no API, no web form, runs entirely offline.
+# Gravity functionals from the EIGEN-6C4 spherical harmonic model, computed
+# locally with pyshtools (no web service). Values are on the GRS80 ellipsoid
+# (h = 0), synthesised directly at the output pixels.
 #
-# The EIGEN-6C4.gfc file (~90 MB) is downloaded automatically on first run
-# and cached at the path set in eigen6c4_params.gfc_path below.
-# If auto-download fails, get it manually from:
+# The EIGEN-6C4.gfc file (~90 MB) is downloaded on first run (link looked up in
+# the ICGEM model table) and cached at eigen6c4_params.gfc_path.
+# If the download fails, get it manually from:
 #   https://icgem.gfz.de/home  →  Table of Models  →  EIGEN-6C4  →  gfc
 #
 # Model info:
 #   EIGEN-6C4  –  degree/order 2190  –  GFZ Potsdam + GRGS Toulouse (2014)
 #   Reference: Förste et al. (2014), doi:10.5880/icgem.2015.1
 #
-# Resolution guide (lmax_expand):
-#   360  →  ~55 km  (fast,   regional overview)
-#   720  →  ~28 km  (medium, good for most studies)
-#   1080 →  ~18 km  (slow,   high detail)
-#   Note: full degree 2190 (~9 km) requires large RAM and several hours.
+# Resolution guide (lmax_expand, half wavelength):
+#   360  →  ~55 km  (regional overview)
+#   720  →  ~28 km  (good for most studies)
+#   1080 →  ~18 km  (high detail)
+#   2190 →  ~9 km   (full model)
 
 # -----------------------------------------------------------------------------
 # Parameters
@@ -25,44 +26,46 @@
 paths:
   # Path to your AOI file (GeoPackage, Shapefile, GeoJSON …).
   # Relative paths are resolved from the project root (two levels above config/).
-  aoi: aoi/dem.zip
+  # The output covers the AOI bounding box.
+  aoi: aoi/shield_basins_area.zip
 
   # Root folder for all EIGEN-6C4 output.
   # Sub-folders created automatically:
-  #   mosaic/  – final GeoTIFFs (one per functional)
-  output_base: data/eigen6c4
+  #   mosaic/  – final GeoTIFFs, EIGEN6C4_<functional>.tif (EPSG:4326, mGal)
+  output_base: data/01_raw_data/raw_eigen6c4
 
 eigen6c4_params:
-  # Path to the manually downloaded EIGEN-6C4.gfc file.
-  # Relative paths are resolved from the project root.
-  gfc_path: data/eigen6c4/EIGEN-6C4.gfc
+  # Cached model coefficient file (downloaded on first run if missing).
+  gfc_path: data/01_raw_data/raw_eigen6c4/EIGEN-6C4.gfc
 
-  # Maximum spherical harmonic degree to use for expansion.
-  # See resolution guide in the header above.
+  # Maximum spherical harmonic degree. See resolution guide in the header above.
   lmax_expand: 720
 
-  # Available functionals to compute:
-  #   gravity_anomaly_bg  – Simple Bouguer anomaly   (mGal)
-  #   gravity_anomaly     – Free-air anomaly          (mGal)
-  #   gravity             – Total gravity             (mGal)
+  # Available functionals:
+  #   gravity_anomaly_bg   – Simple Bouguer anomaly: free-air − 2πGρh    (mGal)
+  #   gravity_anomaly      – Free-air gravity anomaly                     (mGal)
+  #   gravity_disturbance  – Gravity disturbance (g − γ at the same point) (mGal)
+  #   gravity              – Total gravity, normal gravity + disturbance   (mGal)
   functionals:
     - gravity_anomaly_bg
-    # - gravity_anomaly
+    - gravity_anomaly
+    # - gravity_disturbance
     # - gravity
 
-  # Assumed crustal density for Bouguer plate correction [g/cm³].
+  # Crustal density for the Bouguer plate correction [g/cm³].
   # Only used when 'gravity_anomaly_bg' is requested.
   density: 2.67
 
-  # Path to a DEM GeoTIFF (metres, any CRS) for the Bouguer correction.
+  # DEM GeoTIFF (metres, any CRS) for the Bouguer correction, averaged to the
+  # output pixels; heights below sea level are set to 0 (onshore correction only).
+  # Default: COP30 from 01_opentopo_download.py with
+  #   output_base: data/01_raw_data/raw_copglo_dem30m
   # Only needed when 'gravity_anomaly_bg' is requested.
-  # Relative paths are resolved from the project root.
-  dem_path: data/dem/srtm_mosaic.tif
+  dem_path: data/01_raw_data/raw_copglo_dem30m/COP30_subset.tif
 
-  # Output grid resolution in degrees. Determines how finely the
-  # spherical harmonic grid is sampled after expansion.
-  # Should not be finer than the natural resolution of lmax_expand:
-  #   lmax 360 → 0.5°,  lmax 720 → 0.25°,  lmax 1080 → 0.17°
+  # Output pixel size in degrees. The field is evaluated at every pixel, so a
+  # step finer than the model resolution (0.25° at lmax 720) only gives a
+  # smoother raster, not more detail. Runtime grows with the number of rows.
   grid_step: 0.01
 
 # -----------------------------------------------------------------------------

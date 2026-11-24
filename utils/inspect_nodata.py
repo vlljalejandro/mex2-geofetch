@@ -4,15 +4,13 @@ inspect_nodata.py
 Read-only diagnostic for NoData problems.
 
 Outputs (default): every *.tif in paths.output_dir
-Inputs (--inputs): every *.tif under paths.input_dir — only problem files are listed
+Inputs (SCAN_INPUTS = True): every *.tif under paths.input_dir — only problem files are listed
 
 Usage
 -----
-    python utils/inspect_nodata.py             # analyze outputs
-    python utils/inspect_nodata.py --inputs    # also scan raw input tiles
+    python utils/inspect_nodata.py    # analyze outputs (and raw inputs if SCAN_INPUTS)
 """
 
-import argparse
 import sys
 from collections import Counter
 from pathlib import Path
@@ -25,6 +23,7 @@ gdal.UseExceptions()
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent   # utils/ -> project/
 CONFIG_FILE   = _PROJECT_ROOT / "utils" / "config" / "snap_raster_batch.yaml"
+SCAN_INPUTS   = False   # True = also scan raw input tiles
 
 SENTINEL   = -9999.0
 BLEND_LOW  = -9999.0    # values strictly between BLEND_LOW and BLEND_HIGH
@@ -161,15 +160,11 @@ def report_inputs(in_dir: Path) -> None:
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--inputs", action="store_true", help="also scan raw input tiles")
-    args = ap.parse_args()
-
     with open(CONFIG_FILE) as fh:
         cfg = yaml.safe_load(fh)
 
     report_outputs(_resolve(cfg["paths"]["output_dir"]))
-    if args.inputs:
+    if SCAN_INPUTS:
         report_inputs(_resolve(cfg["paths"]["input_dir"]))
 
 

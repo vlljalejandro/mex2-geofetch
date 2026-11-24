@@ -1,0 +1,40 @@
+# =============================================================================
+# PRISMA L2D Export Configuration
+# =============================================================================
+# Used by 02_prisma_export.py to convert PRISMA L2D granules (.he5) into
+# float32 surface reflectance GeoTIFFs (one per granule, NaN = nodata).
+#
+# PRISMA data are ordered from the ASI portal (https://prisma.asi.it) and
+# placed in input_dir by hand; there is no download step.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Processing
+# -----------------------------------------------------------------------------
+# input_dir  : Folder with PRS_L2D_STD_*.he5 granules.
+# output_dir : Output folder, <granule name>.tif per granule.
+#              Relative paths are resolved from the project root.
+# recursive  : true = also search subfolders of input_dir.
+#
+# target_wavelengths_nm : null = every valid VNIR + SWIR band (~230), sorted by
+#                         wavelength. Or a list: the closest band to each target
+#                         becomes one output band, e.g.
+#                           [460, 550, 655]            natural colour
+#                           [550, 655, 849]            false colour NIR
+#                           [849, 1650, 2200]          vegetation / geology
+#                           [2165, 2200, 2340]         clay / Al-OH
+#                           [460, 550, 655, 849, 1650, 2200]
+#
+# compress   : DEFLATE | LZW | ZSTD | NONE
+processing:
+  input_dir: "data/01_raw_data/raw_prisma_hyper30m"
+  output_dir: "data/02_mosaic_data/prisma_hyper30m"
+  recursive: true
+  target_wavelengths_nm: null
+  compress: "DEFLATE"
+
+# -----------------------------------------------------------------------------
+# Running Code
+# -----------------------------------------------------------------------------
+# python scripts/02_prisma_export.py

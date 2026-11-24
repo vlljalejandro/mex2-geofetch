@@ -1,0 +1,33 @@
+# mex2-geofetch
+# pip install -r requirements.txt   (or install the same into the `maaden` conda env)
+
+# Core
+numpy
+scipy
+pandas
+pyyaml
+tqdm
+requests
+
+# Raster and vector I/O
+gdal                 # osgeo bindings (00, 03, 04); easiest from conda-forge
+rasterio
+geopandas
+fiona                # AOIs are read with engine="fiona"
+shapely
+pyproj
+xarray
+netCDF4              # EMIT granules, NetCDF cubes
+h5py                 # PRISMA granules (02_prisma_export)
+
+# Data access (01)
+pystac-client        # Planetary Computer search (Landsat, Sentinel-2)
+planetary-computer   # signs Planetary Computer asset URLs
+earthaccess          # NASA Earthdata (EMIT)
+pyshtools            # EIGEN-6C4 coefficients and Legendre functions
+
+# Utilities and figures (utils/)
+matplotlib
+matplotlib-scalebar
+contextily
+scikit-learn         # sentinel_quaternary.py (PCA, K-means)

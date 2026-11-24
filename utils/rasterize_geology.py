@@ -32,9 +32,9 @@ CONFIG_PATH = os.path.join(THIS_DIR, "config/rasterize_geology.yaml")
 with open(CONFIG_PATH, "r") as f:
     cfg = yaml.safe_load(f)
 
-SHAPEFILE_PATH = os.path.join(THIS_DIR, cfg["paths"]["shapefile"])
-MASTER_GRID_PATH = os.path.join(THIS_DIR, cfg["paths"]["master_grid"])
-OUT_DIR = os.path.join(THIS_DIR, cfg["paths"]["output_dir"])
+SHAPEFILE_PATH = os.path.join(PROJECT_ROOT, cfg["paths"]["shapefile"])
+MASTER_GRID_PATH = os.path.join(PROJECT_ROOT, cfg["paths"]["master_grid"])
+OUT_DIR = os.path.join(PROJECT_ROOT, cfg["paths"]["output_dir"])
 
 PROJECT_CRS = cfg["crs"]["project_crs"]
 

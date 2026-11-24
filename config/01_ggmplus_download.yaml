@@ -12,7 +12,7 @@
 paths:
   # Path to your AOI file (GeoPackage, Shapefile, GeoJSON …).
   # Relative paths are resolved from the project root (two levels above config/).
-  aoi: aoi/dem.zip
+  aoi: aoi/shield_basins_area.zip
 
   # Root folder for all GGMplus output.
   # Sub-folders created automatically:

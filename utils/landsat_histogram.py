@@ -14,6 +14,10 @@ import matplotlib.gridspec as gridspec
 from pathlib import Path
 from tqdm import tqdm
 
+# Raw scene folder and bands are read from processing.input_dir / processing.bands;
+# histograms go to processing.histogram_output_dir (default: output/overlap_histograms).
+CONFIG_FILE = Path(__file__).resolve().parent.parent / "config" / "02_landsat_mosaic.yaml"
+
 
 # =============================================================================
 # Config / helpers
@@ -420,15 +424,11 @@ def main(config_file=None, tile_dir=None, output_dir=None, bands=None):
     """
     Usage modes
     -----------
-    1. Pass a YAML config (same schema as the mosaic config):
-         python tile_overlap_histograms.py path/to/config.yaml
+    1. Run directly: uses CONFIG_FILE at the top (Landsat mosaic config).
+         python utils/landsat_histogram.py
 
-    2. Pass keyword args directly when importing as a module:
-         from tile_overlap_histograms import main
+    2. Pass keyword args when importing as a module:
          main(tile_dir="data/tiles", output_dir="out/histograms", bands=[3, 4, 5])
-
-    3. Point at a directory of TIFs from the command line:
-         python tile_overlap_histograms.py --tile-dir data/tiles --band 4
     """
     # ── resolve sources ────────────────────────────────────────────────────
     if config_file:
@@ -481,35 +481,4 @@ def main(config_file=None, tile_dir=None, output_dir=None, bands=None):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Export overlap-zone histograms for every pair of GeoTIFF tiles."
-    )
-    parser.add_argument("config", nargs="?", default=None,
-                        help="Path to YAML config (same format as mosaic pipeline). "
-                             "Mutually exclusive with --tile-dir.")
-    parser.add_argument("--tile-dir", default=None,
-                        help="Directory containing GeoTIFF tiles (no config needed).")
-    parser.add_argument("--output-dir", default=None,
-                        help="Where to save histogram PNGs. "
-                             "Defaults to <tile-dir>/overlap_histograms.")
-    parser.add_argument("--band", type=int, default=None,
-                        help="Single band to inspect (overrides config). Default: 1.")
-    parser.add_argument("--bands", type=int, nargs="+", default=None,
-                        help="Multiple bands to inspect (e.g. --bands 3 4 5).")
-
-    args = parser.parse_args()
-
-    _bands = None
-    if args.band:
-        _bands = [args.band]
-    elif args.bands:
-        _bands = args.bands
-
-    main(
-        config_file = args.config,
-        tile_dir    = args.tile_dir,
-        output_dir  = args.output_dir,
-        bands       = _bands,
-    )
+    main(config_file=CONFIG_FILE)
